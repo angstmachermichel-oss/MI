@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber-Knobelnetzwerk v6.1</title>
+    <style>
+        body {
+            background-color: #05070a;
+            color: #00ff66;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .game-container {
+            background-color: #0c1017;
+            border: 2px solid #00ff66;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.15);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 680px;
+            padding: 30px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .score-board {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #ffaa00;
+            background: #121824;
+            padding: 5px 15px;
+            border: 1px solid #ffaa00;
+            border-radius: 4px;
+        }
+        .url-display {
+            background-color: #020406;
+            border: 1px dashed #00ff66;
+            padding: 15px;
+            text-align: center;
+            font-family: monospace;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+            border-radius: 6px;
+            color: #444;
+            margin-top: 20px;
+        }
+        .url-display .active-part {
+            color: #00ff66;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 102, 0.5);
+        }
+        .node {
+            background-color: #121824;
+            border: 1px solid #1f293d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .node.locked {
+            opacity: 0.12;
+            pointer-events: none;
+            border-color: #222;
+        }
+        .node h3 {
+            margin-top: 0;
+            color: #ffffff;
+            font-size: 1.1rem;
+        }
+        .node p {
+            color: #8b949e;
+            font-size: 0.95rem;
+            margin: 5px 0 15px 0;
+        }
+        /* Multi-Level-Hinweise */
+        .hint-system {
+            margin: 10px 0 15px 0;
+        }
+        .hint-btn {
+            background: none;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            margin-right: 5px;
+            border-radius: 4px;
+        }
+        .hint-btn:hover { background: rgba(0, 255, 255, 0.1); }
+        .hint-content {
+            display: none;
+            background-color: #070b12;
+            border-left: 2px solid #00ffff;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #9cb4d4;
+            border-radius: 0 6px 6px 0;
+        }
+        /* Node 1: Bits sauber formatiert */
+        .bit-container {
+            display: flex;
+            justify-content: space-around;
+            max-width: 320px;
+            margin: 20px auto 10px auto;
+        }
+        .bit-wrapper {
+            text-align: center;
+        }
+        .bit-btn {
+            background-color: #1f293d;
+            border: 2px solid #30363d;
+            color: #8b949e;
+            width: 55px;
+            height: 55px;
+            font-size: 1.4rem;
+            font-family: monospace;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .bit-btn.on {
+            background-color: #00ff66;
+            border-color: #00ff66;
+            color: #020406;
+            box-shadow: 0 0 10px rgba(0, 255, 102, 0.4);
+        }
+        .bit-val {
+            font-size: 0.8rem;
+            color: #58a6ff;
+            margin-top: 6px;
+            font-family: monospace;
+        }
+        /* Grafische Darstellungen in Node 3 */
+        .visual-box {
+            background: #020406;
+            border: 1px solid #1f293d;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        /* Streichhölzer */
+        .matchstick-container {
+            font-family: monospace;
+            font-size: 2.2rem;
+            color: #ff5500;
+            font-weight: bold;
+            letter-spacing: 6px;
+            background: #111;
+            padding: 10px 20px;
+            border-radius: 4px;
+            border: 1px solid #333;
+            text-shadow: 0 0 8px #ff5500;
+        }
+        /* Münz-Dreieck */
+        .coin-triangle {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .coin-row {
+            display: flex;
+            gap: 5px;
+        }
+        .coin {
+            width: 24px;
+            height: 24px;
+            background: #ffaa00;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 5px rgba(255,170,0,0.6);
+        }
+        /* Familie & Boot */
+        .family-list {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+        .family-member {
+            background: #1f293d;
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid #58a6ff;
+        }
+        /* Labyrinth */
+        .grid-maze {
+            display: grid;
+            grid-template-columns: repeat(4, 40px);
+            gap: 5px;
+            justify-content: center;
+        }
+        .maze-cell {
+            width: 40px;
+            height: 40px;
+            background: #1f293d;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-weight: bold;
+            color: #8b949e;
+        }
+        .maze-cell.wall { background: #222; color: #444; }
+        .maze-cell.start { background: #0055ff; color: white; }
+        .maze-cell.end { background: #ffaa00; color: black; }
+        
+        .sub-container {
+            background: #070b12;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #1f293d;
+        }
+        .sub-step { display: none; }
+        .sub-step.active { display: block; }
+        
+        .crypto-table {
+            width: 100%;
+            margin: 15px 0;
+            border-collapse: collapse;
+            font-family: monospace;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+        .crypto-table td {
+            border: 1px solid #1f293d;
+            padding: 10px;
+        }
+        .crypto-table .code-cell {
+            color: #ffaa00;
+            font-weight: bold;
+            background: #020406;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        input[type="text"] {
+            background-color: #020406;
+            border: 1px solid #30363d;
+            color: #00ff66;
+            padding: 10px;
+            font-size: 1rem;
+            border-radius: 6px;
+            flex-grow: 1;
+            font-family: monospace;
+        }
+        button.action-btn {
+            background-color: #1f293d;
+            color: #00ff66;
+            border: 1px solid #00ff66;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        button.action-btn:hover { background-color: #00ff66; color: #020406; }
+        .success-banner {
+            background-color: rgba(0, 255, 102, 0.1);
+            border: 1px solid #00ff66;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            display: none;
+        }
+        .success-banner a { color: #00ff66; font-weight: bold; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="score-board">SCORE: <span id="scoreVal">1000</span></div>
+    
+    <div class="url-display" id="urlDisplay">
+        <span id="p1">________</span>.<span id="p2">__</span>.<span id="p3">_______________.___</span>
+    </div>
+
+    <div class="node" id="node1">
+        <h3>[NODE 01] &raquo; Binär-Injektion</h3>
+        <p>Schalte die Bits so, dass die Summe der aktiven Leitungen exakt <strong>11</strong> ergibt.</p>
+        
+        <div class="hint-system">
+            <button class="hint-btn" onclick="showHint('h1_1', 50)">Hinweis öffnen (-50 Punkte)</button>
+            <div class="hint-content" id="h1_1">Zähle einfach die blauen Werte der eingeschalteten Lampen (1) zusammen, bis du genau auf 11 kommst (z.B. 8 + 2 + 1).</div>
+        </div>
+
+        <div class="bit-container">
+            <div class="bit-wrapper">
+                <button class="bit-btn" id="b8" onclick="toggleBit('b8', 8)">0</button>
+                <div class="bit-val">Wert: 8</div>
+            </div>
+            <div class="bit-wrapper">
+                <button class="bit-btn" id="b4" onclick="toggleBit('b4', 4)">0</button>
+                <div class="bit-val">Wert: 4</div>
+            </div>
+            <div class="bit-wrapper">
+                <button class="bit-btn" id="b2" onclick="toggleBit('b2', 2)">0</button>
+                <div class="bit-val">Wert: 2</div>
+            </div>
+            <div class="bit-wrapper">
+                <button class="bit-btn" id="b1" onclick="toggleBit('b1', 1)">0</button>
+                <div class="bit-val">Wert: 1</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="node locked" id="node2">
+        <h3>[NODE 02] &raquo; Frequenz-Analyse (Zahlenfolgen)</h3>
+        <p>Knacke die Firewall, indem du alle drei Sequenzen richtig fortsetzt!</p>
+
+        <div class="sub-container">
+            <div class="sub-step active" id="seq1">
+                <p><strong>Sequenz 1/3:</strong> 2 &rarr; 4 &rarr; 8 &rarr; 16 &rarr; ?</p>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h2_1_v', 50)">Stufe 1: Grafisch (-50)</button>
+                    <button class="hint-btn" onclick="showHint('h2_1_m', 100)">Stufe 2: Rechenweg (-100)</button>
+                    <div class="hint-content" id="h2_1_v">Abstand-Visualisierung:<br>●● (2) &rarr; ●●●● (4) &rarr; ●●●●●●●● (8)... Fällt dir etwas auf?</div>
+                    <div class="hint-content" id="h2_1_m">Mathematischer Weg: Multipliziere die letzte Zahl immer mit <b>&times; 2</b>.</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansSeq1" placeholder="Antwort..."><button class="action-btn" onclick="checkSeq(1, '32', 'seq2')">Senden</button></div>
+            </div>
+            <div class="sub-step" id="seq2">
+                <p><strong>Sequenz 2/3:</strong> 1 &rarr; 4 &rarr; 9 &rarr; 16 &rarr; ?</p>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h2_2_v', 50)">Stufe 1: Grafisch (-50)</button>
+                    <button class="hint-btn" onclick="showHint('h2_2_m', 100)">Stufe 2: Rechenweg (-100)</button>
+                    <div class="hint-content" id="h2_2_v">Die Zahlen bilden perfekte Quadrate:<br>1&times;1=1 | 2&times;2=4 | 3&times;3=9 | 4&times;4=16... Was kommt als nächstes?</div>
+                    <div class="hint-content" id="h2_2_m">Mathematischer Weg: Berechne die nächste Quadratzahl, also <b>5 &times; 5</b>.</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansSeq2" placeholder="Antwort..."><button class="action-btn" onclick="checkSeq(2, '25', 'seq3')">Senden</button></div>
+            </div>
+            <div class="sub-step" id="seq3">
+                <p><strong>Sequenz 3/3:</strong> 2 &rarr; 3 &rarr; 5 &rarr; 8 &rarr; 13 &rarr; ?</p>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h2_3_v', 50)">Stufe 1: Grafisch (-50)</button>
+                    <button class="hint-btn" onclick="showHint('h2_3_m', 100)">Stufe 2: Rechenweg (-100)</button>
+                    <div class="hint-content" id="h2_3_v">Kombinations-Muster:<br>(2 + 3) = 5<br>(3 + 5) = 8... Nimm immer die letzten beiden Partner!</div>
+                    <div class="hint-content" id="h2_3_m">Mathematischer Weg: Addiere die letzten beiden Zahlen der Kette: <b>8 + 13</b>.</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansSeq3" placeholder="Antwort..."><button class="action-btn" onclick="checkSeq(3, '21', 'finishSeq')">Senden</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="node locked" id="node3">
+        <h3>[NODE 03] &raquo; Logik-Schnittstelle (Grafische Module)</h3>
+        <p>Löse die Aufgaben, um die Geheimbuchstaben zu entschlüsseln.</p>
+
+        <div class="sub-container">
+            <div class="sub-step active" id="riddle1">
+                <p><strong>Task 1: Das Streichholz-Rätsel</strong><br>Bewege nur 1 Streichholz, damit die Gleichung stimmt:</p>
+                <div class="visual-box">
+                    <div class="matchstick-container">6 + 4 = 4</div>
+                </div>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h3_1', 50)">Hinweis öffnen (-50)</button>
+                    <div class="hint-content" id="h3_1">Nimm ein Holz von der ersten <b>6</b> (sie wird zur 5) und setze es ganz hinten auf die <b>4</b> (sie wird zur 9). Wie lautet das Ergebnis?</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansR1" placeholder="Ergebnis-Zahl..."><button class="action-btn" onclick="checkRiddle(1, '9', 'riddle2', 'Q')">Prüfen</button></div>
+            </div>
+
+            <div class="sub-step" id="riddle2">
+                <p><strong>Task 2: Der Pfad-Code</strong><br>Folge dem Weg im Raster von <b>S</b> zu <b>Z</b>. Wände (X) blockieren den Weg.</p>
+                <div class="visual-box">
+                    <div class="grid-maze">
+                        <div class="maze-cell start">S</div><div class="maze-cell">A</div><div class="maze-cell wall">X</div><div class="maze-cell wall">X</div>
+                        <div class="maze-cell wall">X</div><div class="maze-cell">B</div><div class="maze-cell wall">X</div><div class="maze-cell wall">X</div>
+                        <div class="maze-cell wall">X</div><div class="maze-cell">C</div><div class="maze-cell">D</div><div class="maze-cell wall">X</div>
+                        <div class="maze-cell wall">X</div><div class="maze-cell wall">X</div><div class="maze-cell">E</div><div class="maze-cell end">Z</div>
+                    </div>
+                </div>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h3_2', 50)">Hinweis öffnen (-50)</button>
+                    <div class="hint-content" id="h3_2">Gehe vom S nach rechts auf A, dann runter auf B, runter auf C, rechts auf D, runter auf E und rechts ins Z. Tippe die Buchstaben gross ein!</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansR2" placeholder="z.B. ABCDE..."><button class="action-btn" onclick="checkRiddle(2, 'ABCDE', 'riddle3', 'S')">Prüfen</button></div>
+            </div>
+
+            <div class="sub-step" id="riddle3">
+                <p><strong>Task 3: Flussüberquerung (Max. Gewicht: 100kg)</strong><br>Alle müssen ans andere Ufer. Das Boot trägt max. 100kg. Wie viele Fahrten (hin und zurück zählen einzeln) braucht es mindestens?</p>
+                <div class="visual-box">
+                    <div class="family-list">
+                        <div class="family-member">👨 Vater (90kg)</div>
+                        <div class="family-member">👩 Mutter (80kg)</div>
+                        <div class="family-member">👦 Kind 1 (40kg)</div>
+                        <div class="family-member">👧 Kind 2 (40kg)</div>
+                    </div>
+                    <div style="font-size: 1.5rem;">🛶 [Boot hält max. 100kg]</div>
+                </div>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h3_3', 50)">Hinweis öffnen (-50)</button>
+                    <div class="hint-content" id="h3_3">Erster Schritt: Beide Kinder fahren rüber (Zug 1). Ein Kind fährt mit dem Boot zurück (Zug 2). Jetzt kann ein schwerer Erwachsener rüberfahren (Zug 3). Das zweite Kind bringt das Boot wieder zurück (Zug 4). Wiederholt dieses Muster!</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansR3" placeholder="Anzahl Überquerungen..."><button class="action-btn" onclick="checkRiddle(3, '9', 'riddle4', 'J')">Prüfen</button></div>
+            </div>
+
+            <div class="sub-step" id="riddle4">
+                <p><strong>Task 4: Die Dreiecks-Wende</strong><br>Wie viele Münzen musst du mindestens bewegen, damit die Dreieckspitze nach UNTEN zeigt?</p>
+                <div class="visual-box">
+                    <div class="coin-triangle">
+                        <div class="coin-row"><div class="coin"></div></div>
+                        <div class="coin-row"><div class="coin"></div><div class="coin"></div></div>
+                        <div class="coin-row"><div class="coin"></div><div class="coin"></div><div class="coin"></div></div>
+                        <div class="coin-row"><div class="coin"></div><div class="coin"></div><div class="coin"></div><div class="coin"></div></div>
+                    </div>
+                </div>
+                <div class="hint-system">
+                    <button class="hint-btn" onclick="showHint('h3_4', 50)">Hinweis öffnen (-50)</button>
+                    <div class="hint-content" id="h3_4">Du musst nur die drei äußersten "Ecken" des alten Dreiecks anfassen und umplatzieren, um die neue Form zu erzeugen. Die Lösung ist eine sehr kleine Zahl unter 5.</div>
+                </div>
+                <div class="input-group"><input type="text" id="ansR4" placeholder="Anzahl Münzen..."><button class="action-btn" onclick="checkRiddle(4, '3', 'finishRiddles', 'O')">Prüfen</button></div>
+            </div>
+            
+            <p id="bonusLetterInfo" style="color:#ffaa00; display:none; font-size:0.9rem; margin-top:10px;">[System] Der letzte Buchstabe 'U' wurde durch Sabotage automatisch freigeschaltet!</p>
+        </div>
+
+        <table class="crypto-table">
+            <tr style="font-size:0.8rem; color:#8b949e;"><td>Code 1</td><td>Code 2</td><td>Code 3</td><td>Code 4</td><td>Code 5</td></tr>
+            <tr class="code-cell"><td id="c1">?</td><td id="c2">?</td><td id="c3">?</td><td id="c4">?</td><td id="c5">?</td></tr>
+        </table>
+
+        <div class="input-group">
+            <input type="text" id="input3" placeholder="Cäsar-Entschlüsselung eingeben..." autocomplete="off">
+            <button class="action-btn" onclick="checkNode3()">Entschlüsseln</button>
+        </div>
+    </div>
+
+    <div class="success-banner" id="successBanner">
+        <h2 style="margin-top:0; color:#00ff66;">SYSTEM GEKNACKT!</h2>
+        <p>Euer finaler Score: <strong id="finalScore" style="color:#ffaa00;">-</strong> Punkte!</p>
+        <p>Klickt jetzt auf den Link:</p>
+        <p><a href="https://bielbienne.eu.uniflowonline.com" target="_blank">bielbienne.eu.uniflowonline.com &rarr;</a></p>
+    </div>
+</div>
+
+<script>
+    let score = 1000;
+    let gameActive = true;
+    let currentSum = 0;
+    const bits = { b8: 0, b4: 0, b2: 0, b1: 0 };
+    const openedHints = {};
+
+    const timer = setInterval(() => {
+        if (gameActive && score > 0) {
+            score--;
+            document.getElementById("scoreVal").innerText = score;
+        }
+    }, 1000);
+
+    function showHint(id, cost) {
+        const box = document.getElementById(id);
+        if (box.style.display === "block") {
+            box.style.display = "none";
+        } else {
+            box.style.display = "block";
+            if (!openedHints[id]) {
+                openedHints[id] = true;
+                score = Math.max(0, score - cost);
+                document.getElementById("scoreVal").innerText = score;
+            }
+        }
+    }
+
+    function toggleBit(id, val) {
+        const btn = document.getElementById(id);
+        if (bits[id] === 0) {
+            bits[id] = 1; btn.innerText = "1"; btn.classList.add("on"); currentSum += val;
+        } else {
+            bits[id] = 0; btn.innerText = "0"; btn.classList.remove("on"); currentSum -= val;
+        }
+        if (currentSum === 11) {
+            document.getElementById("p1").innerText = "bielbienne";
+            document.getElementById("p1").classList.add("active-part");
+            document.getElementById("node1").style.opacity = "0.4";
+            document.getElementById("node1").style.pointerEvents = "none";
+            document.getElementById("node2").classList.remove("locked");
+        }
+    }
+
+    function checkSeq(currentNum, correctAns, nextId) {
+        const val = document.getElementById("ansSeq" + currentNum).value.trim();
+        if (val === correctAns) {
+            document.getElementById("seq" + currentNum).classList.remove("active");
+            if (nextId === 'finishSeq') {
+                document.getElementById("p2").innerText = "eu";
+                document.getElementById("p2").classList.add("active-part");
+                document.getElementById("node2").style.opacity = "0.4";
+                document.getElementById("node2").style.pointerEvents = "none";
+                document.getElementById("node3").classList.remove("locked");
+            } else {
+                document.getElementById(nextId).classList.add("active");
+            }
+        } else { blinkError("ansSeq" + currentNum); }
+    }
+
+    function checkRiddle(num, correctAns, nextId, letter) {
+        const val = document.getElementById("ansR" + num).value.trim().toUpperCase();
+        if (val === correctAns) {
+            document.getElementById("c" + num).innerText = letter;
+            document.getElementById("riddle" + num).classList.remove("active");
+            if (nextId === 'finishRiddles') {
+                document.getElementById("c5").innerText = "U";
+                document.getElementById("bonusLetterInfo").style.display = "block";
+            } else { document.getElementById(nextId).classList.add("active"); }
+        } else { blinkError("ansR" + num); }
+    }
+
+    function checkNode3() {
+        const val = document.getElementById("input3").value.trim().toUpperCase();
+        if (val === "PRINT") {
+            gameActive = false;
+            document.getElementById("p3").innerText = "uniflowonline.com";
+            document.getElementById("p3").classList.add("active-part");
+            document.getElementById("node3").style.opacity = "0.4";
+            document.getElementById("node3").style.pointerEvents = "none";
+            document.getElementById("finalScore").innerText = score;
+            document.getElementById("successBanner").style.display = "block";
+            document.getElementById("successBanner").scrollIntoView({ behavior: 'smooth' });
+        } else { blinkError("input3"); }
+    }
+
+    function blinkError(id) {
+        const el = document.getElementById(id);
+        el.style.borderColor = "#ff4444";
+        setTimeout(() => el.style.borderColor = "#30363d", 500);
+    }
+</script>
+
+</body>
+</html>

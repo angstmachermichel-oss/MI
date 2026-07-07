@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auftrag 03 — Körper aus dem Drucker</title>
+<style>
+  :root{
+    --bg:#1c1b1a; --bg2:#242220; --paper:#ede9e0; --paper-dim:#b8b3a6;
+    --orange:#ff6a35; --blue:#5a86ad; --yellow:#f0c445; --line:rgba(237,233,224,0.16);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--paper); font-family:var(--sans); line-height:1.55; overflow-x:hidden; }
+  ::selection{background:var(--yellow); color:#1c1b1a;}
+  #cutline{ position:fixed; top:0; left:0; height:4px; width:0%;
+    background: repeating-linear-gradient(90deg, var(--yellow) 0 8px, transparent 8px 14px);
+    z-index:100; transition:width .1s linear; box-shadow:0 0 8px var(--yellow); }
+  nav.dots{ position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:14px; z-index:90; }
+  nav.dots button{ width:9px; height:9px; border-radius:50%; border:1px solid var(--paper-dim); background:transparent; cursor:pointer; padding:0; }
+  nav.dots button.active{ background:var(--yellow); border-color:var(--yellow); }
+  @media (max-width:720px){ nav.dots{ display:none; } }
+  section{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:8vh 8vw; position:relative; border-bottom:1px solid var(--line); }
+  .eyebrow{ font-family:var(--mono); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--yellow); margin-bottom:1.1rem; display:flex; align-items:center; gap:.6em; }
+  .eyebrow::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--yellow); box-shadow:0 0 6px var(--yellow); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  h1{ font-size:clamp(2.2rem, 6.6vw, 5rem); margin:0 0 .3rem 0; letter-spacing:-.02em; font-weight:800; text-transform:uppercase; line-height:.98; }
+  h1 span{ color:var(--yellow); }
+  h2{ font-size:clamp(1.5rem,3.4vw,2.4rem); margin:0 0 1rem; font-weight:800; letter-spacing:-.01em; }
+  p.lead{ font-size:clamp(1.05rem,1.6vw,1.3rem); max-width:640px; color:var(--paper-dim); }
+  .max{ max-width:760px; }
+  .reveal{ opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .card{ border:1px dashed var(--line); border-radius:2px; padding:1.6rem 1.8rem; background:var(--bg2); position:relative; }
+  .card::before{ content: attr(data-tag); position:absolute; top:-11px; left:16px; background:var(--bg); padding:0 8px; font-family:var(--mono); font-size:.7rem; letter-spacing:.12em; color:var(--paper-dim); text-transform:uppercase; }
+  .steps{ counter-reset:step; list-style:none; padding:0; margin:1.4rem 0 0; }
+  .steps li{ counter-increment:step; position:relative; padding:.7rem 0 .7rem 3rem; border-top:1px solid var(--line); }
+  .steps li:first-child{ border-top:none; }
+  .steps li::before{ content: counter(step,decimal-leading-zero); position:absolute; left:0; top:.7rem; font-family:var(--mono); color:var(--yellow); font-weight:700; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:2.2rem; }
+  @media (max-width:860px){ .grid2{ grid-template-columns:1fr; } }
+  .demo{ display:grid; grid-template-columns: 300px 1fr; gap:2rem; align-items:start; background:var(--bg2); border:1px solid var(--line); border-radius:4px; padding:1.8rem; }
+  @media (max-width:760px){ .demo{ grid-template-columns:1fr; } }
+  .demo h3{ font-family:var(--mono); font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--orange); margin:0 0 1rem;}
+  .ctrl{ margin-bottom:1.3rem; }
+  .ctrl label{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:.82rem; color:var(--paper-dim); margin-bottom:.35rem;}
+  .ctrl output{ color:var(--paper); }
+  input[type=range]{ width:100%; -webkit-appearance:none; height:3px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--yellow); cursor:pointer; box-shadow:0 0 6px var(--yellow); }
+  select{ width:100%; background:#0f0e0d; color:var(--paper); border:1px solid var(--line); padding:.5rem; font-family:var(--mono); border-radius:3px; }
+  .canvas-wrap{ background:#0f0e0d; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; min-height:360px; }
+  .specs{ font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:.3rem 1rem;}
+  .specs b{ color:var(--paper); }
+  .choice{ border:1px solid var(--line); border-radius:3px; padding:1.2rem 1.4rem; }
+  .choice h4{ margin:0 0 .5rem; color:var(--blue); font-size:1rem; text-transform:uppercase; letter-spacing:.06em;}
+  .badge{ display:inline-block; font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; padding:.25em .6em; border-radius:2px; text-transform:uppercase; margin-right:.5em; }
+  .badge.pflicht{ background:var(--yellow); color:#1c1b1a; }
+  .badge.wahl{ background:var(--blue); color:#0f1a22; }
+  .badge.zusatz{ background:var(--orange); color:#1c1b1a; }
+  .warn{ border-left:3px solid var(--orange); padding:.9rem 1.2rem; background:rgba(255,106,53,0.08); font-size:.95rem; color:var(--paper); }
+  .warn b{ color:var(--orange); }
+  .checklist{ list-style:none; padding:0; margin:1.2rem 0 0; }
+  .checklist li{ padding:.5rem 0 .5rem 1.8rem; position:relative; border-top:1px solid var(--line); }
+  .checklist li:first-child{ border-top:none; }
+  .checklist li::before{ content:"▢"; position:absolute; left:0; color:var(--yellow); }
+  footer{ padding:6vh 8vw; text-align:center; color:var(--paper-dim); font-family:var(--mono); font-size:.8rem; }
+  .scrolltip{ margin-top:2.4rem; font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); letter-spacing:.08em; }
+  .scrolltip::after{ content:"↓"; display:block; margin-top:.4rem; animation:bob 1.6s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(6px);} }
+  .kicker-num{ font-family:var(--mono); color:var(--paper-dim); }
+  .formula{ font-family:var(--mono); background:var(--bg2); border:1px solid var(--line); padding:.9rem 1.1rem; border-radius:3px; display:inline-block; margin:.4rem 0; }
+</style>
+</head>
+<body>
+
+<div id="cutline"></div>
+<nav class="dots" id="dots"></nav>
+
+<section id="s0">
+  <div class="eyebrow">Werkstatt-Auftrag 03 · 3D-Drucker</div>
+  <h1>KÖRPER AUS<br>DEM <span>DRUCKER</span></h1>
+  <p class="lead">Vom Platonischen Körper zum eigenen Rotationskörper. Du berechnest Volumen und Gewicht, bevor die Maschine auch nur eine Schicht gedruckt hat — und prüfst danach, ob deine Rechnung stimmte.</p>
+  <div class="scrolltip reveal">Scrollen für den Auftrag</div>
+</section>
+
+<section id="s1">
+  <div class="eyebrow reveal">01 · Wie ein Drucker denkt</div>
+  <h2 class="reveal">Schicht für Schicht, aussen und innen verschieden.</h2>
+  <div class="grid2">
+    <div class="reveal">
+      <p>Ein 3D-Drucker baut jeden Körper aus dünnen Schichten (meist 0.2 mm) auf. Anders als beim Laser wird hier nicht geschnitten, sondern <b>Material aufgetragen</b> — Schicht für Schicht, bis der Körper fertig ist.</p>
+      <p>Das Innere eines gedruckten Objekts ist selten massiv voll. Ein <b>Infill</b> (z.B. 15%) aus einem Gittermuster spart Material und Zeit, ohne die Stabilität stark zu verringern — nur die Aussenhülle (die "Shells") ist meist voll.</p>
+    </div>
+    <div class="card reveal" data-tag="Merksatz">
+      <p style="margin:0;">Volumen des Körpers ≠ Volumen des tatsächlich gedruckten Materials. Das Verhältnis dazwischen ist der Infill-Grad.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="eyebrow reveal"><span class="badge pflicht">Pflicht</span> Grundauftrag</div>
+  <h2 class="reveal">Berechne, bevor du druckst.</h2>
+  <p class="lead reveal">Wähle einen Platonischen Körper (Würfel, Tetraeder, Oktaeder) oder eine einfache Form und baue ihn in Tinkercad — aber erst, nachdem du von Hand gerechnet hast.</p>
+  <ol class="steps reveal">
+    <li>Wähle deinen Körper und eine Kantenlänge zwischen 2 und 5 cm.</li>
+    <li>Berechne Volumen und Oberfläche von Hand mit der passenden Formel.</li>
+    <li>Baue den Körper massstabsgetreu in Tinkercad nach (gleiche Masse wie berechnet).</li>
+    <li>Nutze das Werkzeug unten, um bei gegebenem Infill Gewicht, Materialkosten und Druckzeit zu schätzen.</li>
+    <li>Nach dem Druck: wiege das fertige Teil und vergleiche mit deiner Schätzung. Erkläre Abweichungen.</li>
+  </ol>
+</section>
+
+<section id="s3">
+  <div class="eyebrow reveal">02 · Live-Werkzeug</div>
+  <h2 class="reveal">Was kostet dein Körper wirklich?</h2>
+  <p class="lead reveal">Gib das Volumen deines Körpers ein (aus deiner Handrechnung) und verändere Infill und Material — das Werkzeug schätzt Gewicht, Kosten und Druckzeit.</p>
+  <div class="demo reveal">
+    <div>
+      <h3>Parameter</h3>
+      <div class="ctrl"><label>Volumen <output id="ov-vol">15</output> cm³</label><input type="range" id="in-vol" min="1" max="150" value="15"></div>
+      <div class="ctrl"><label>Infill <output id="ov-infill">15</output>%</label><input type="range" id="in-infill" min="5" max="100" value="15"></div>
+      <div class="ctrl">
+        <label style="display:block; margin-bottom:.35rem;">Material</label>
+        <select id="in-mat">
+          <option value="1.24|35">PLA — 1.24 g/cm³, 35 CHF/kg</option>
+          <option value="1.27|38">PETG — 1.27 g/cm³, 38 CHF/kg</option>
+          <option value="1.04|45">ABS — 1.04 g/cm³, 45 CHF/kg</option>
+        </select>
+      </div>
+      <div class="specs">
+        <span>Gewicht:</span><b id="sp-weight">—</b>
+        <span>Materialkosten:</span><b id="sp-cost">—</b>
+        <span>Druckzeit ca.:</span><b id="sp-time">—</b>
+        <span>Effektivvolumen:</span><b id="sp-effvol">—</b>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <svg id="svg-gauge" width="320" height="320" viewBox="0 0 320 320"></svg>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="eyebrow reveal"><span class="badge wahl">Wahl</span> Erweiterung — wähle eine Variante</div>
+  <h2 class="reveal">Vom Einzelstück zur Serie.</h2>
+  <div class="grid2">
+    <div class="choice reveal">
+      <h4>A — Skalierungsreihe</h4>
+      <p>Drucke denselben Körper in drei Grössen (z.B. Kantenlänge × 1, × 1.5, × 2). Berechne vorher, um welchen Faktor das Volumen (und damit Gewicht/Kosten) bei jeder Verdoppelung der Kantenlänge zunimmt — Hinweis: Volumen skaliert mit der <b>dritten Potenz</b> des Längenfaktors.</p>
+    </div>
+    <div class="choice reveal">
+      <h4>B — Rotationskörper</h4>
+      <p>Zeichne eine Profilkurve (z.B. für eine Vase oder einen Kreisel) und rotiere sie in Tinkercad oder mit dem "Revolve"-Werkzeug um 360°. Beschreibe, welche Funktion y = f(x) etwa deiner Profilkurve entspricht.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="eyebrow reveal"><span class="badge zusatz">Zusatz</span> Königsdisziplin</div>
+  <h2 class="reveal">Code statt Klicken: OpenSCAD.</h2>
+  <div class="grid2">
+    <p class="reveal">Baue deinen Körper in <b>OpenSCAD</b> nach — nicht durch Ziehen von Formen, sondern durch Code mit Variablen (z.B. <span class="kicker-num">kantenlaenge = 30;</span>). Ändere anschliessend nur die Variable, um eine zweite Version in anderer Grösse zu erzeugen, ohne neu zu konstruieren.</p>
+    <div class="card reveal" data-tag="Bonuspunkt">
+      <p style="margin:0;">Wer eine Formel (z.B. für Volumen) direkt im Code als Kommentar mitliefert und mit der tatsächlichen OpenSCAD-Ausgabe vergleicht, zeigt, wie Mathematik und Programmierung zusammenhängen.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="eyebrow reveal">Sicherheit</div>
+  <h2 class="reveal">Der Drucker ist heiss, nicht scharf.</h2>
+  <div class="warn reveal">
+    Die Düse arbeitet bei 190-230°C — <b>nie berühren</b>, auch nicht kurz nach dem Druck. Beim Entfernen von Stützstrukturen (Supports) mit dem Seitenschneider von dir weg schneiden. Der Raum sollte während des Drucks gelüftet sein.
+  </div>
+</section>
+
+<section id="s7">
+  <div class="eyebrow reveal">Abgabe</div>
+  <h2 class="reveal">Checkliste vor dem Druck.</h2>
+  <ul class="checklist reveal max">
+    <li>Handrechnung für Volumen und Oberfläche liegt vor</li>
+    <li>Infill und Material begründet gewählt</li>
+    <li>Schätzung aus dem Werkzeug notiert (Gewicht, Kosten, Zeit)</li>
+    <li>Nach dem Druck: reales Gewicht gemessen und mit Schätzung verglichen</li>
+    <li>Bei Wahl/Zusatz: Skalierungsrechnung bzw. OpenSCAD-Code beigelegt</li>
+  </ul>
+</section>
+
+<footer>MI-Werkstatt · Auftrag 03 / 05 · 3D-Drucker</footer>
+
+<script>
+(function(){
+  const cutline = document.getElementById('cutline');
+  window.addEventListener('scroll', ()=>{
+    const h = document.documentElement;
+    const pct = (h.scrollTop)/(h.scrollHeight - h.clientHeight) * 100;
+    cutline.style.width = pct + '%';
+  });
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); }); }, {threshold:0.15});
+  els.forEach(el=>io.observe(el));
+  const sections = document.querySelectorAll('section');
+  const dotsWrap = document.getElementById('dots');
+  sections.forEach((s)=>{ const b=document.createElement('button'); b.addEventListener('click', ()=> s.scrollIntoView({behavior:'smooth'})); dotsWrap.appendChild(b); });
+  const dotBtns = dotsWrap.querySelectorAll('button');
+  const io2 = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ const idx=Array.from(sections).indexOf(e.target); if(e.isIntersecting){ dotBtns.forEach(b=>b.classList.remove('active')); dotBtns[idx].classList.add('active'); } });
+  }, {threshold:0.5});
+  sections.forEach(s=>io2.observe(s));
+
+  const svg = document.getElementById('svg-gauge');
+  const inVol=document.getElementById('in-vol'), inInfill=document.getElementById('in-infill'), inMat=document.getElementById('in-mat');
+  const ovVol=document.getElementById('ov-vol'), ovInfill=document.getElementById('ov-infill');
+  const spWeight=document.getElementById('sp-weight'), spCost=document.getElementById('sp-cost'), spTime=document.getElementById('sp-time'), spEffvol=document.getElementById('sp-effvol');
+
+  function render(){
+    const vol = parseFloat(inVol.value); // cm3
+    const infill = parseInt(inInfill.value)/100;
+    const [density, pricePerKg] = inMat.value.split('|').map(parseFloat);
+    ovVol.textContent = vol; ovInfill.textContent = inInfill.value;
+
+    // shell approx: assume ~20% of volume is solid shell regardless of infill, rest follows infill ratio
+    const shellFrac = 0.2;
+    const effVolFrac = shellFrac + (1-shellFrac)*infill;
+    const effVol = vol * effVolFrac;
+    const weightG = effVol * density;
+    const cost = (weightG/1000) * pricePerKg;
+    const timeMin = Math.round(effVol * 2.2 + 8); // illustrative estimate
+
+    spEffvol.textContent = effVol.toFixed(1) + ' cm³';
+    spWeight.textContent = weightG.toFixed(1) + ' g';
+    spCost.textContent = cost.toFixed(2) + ' CHF';
+    spTime.textContent = (timeMin>=60? Math.floor(timeMin/60)+' h '+(timeMin%60)+' min' : timeMin+' min');
+
+    // gauge: radial fill representing infill %, plus a small cube representing solid vs hollow proportion
+    const r = 110, cx=160, cy=150;
+    const circ = 2*Math.PI*r;
+    const dash = circ*infill;
+    let s = '<rect width="320" height="320" fill="#0f0e0d"/>';
+    s += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#3a3733" stroke-width="14"/>';
+    s += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#f0c445" stroke-width="14" stroke-dasharray="'+dash.toFixed(1)+' '+circ.toFixed(1)+'" stroke-linecap="round" transform="rotate(-90 '+cx+' '+cy+')"/>';
+    s += '<text x="'+cx+'" y="'+(cy+8)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="34" fill="#ede9e0" font-weight="700">'+inInfill.value+'%</text>';
+    s += '<text x="'+cx+'" y="'+(cy+30)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#b8b3a6">INFILL</text>';
+    s += '<text x="'+cx+'" y="270" text-anchor="middle" font-family="ui-monospace,monospace" font-size="12" fill="#5a86ad">'+weightG.toFixed(1)+' g · '+cost.toFixed(2)+' CHF</text>';
+    svg.innerHTML = s;
+  }
+  [inVol,inInfill,inMat].forEach(i=>i.addEventListener('input', render));
+  render();
+})();
+</script>
+</body>
+</html>

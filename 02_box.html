@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auftrag 02 — Schachtel mit Zapfen</title>
+<style>
+  :root{
+    --bg:#1c1b1a; --bg2:#242220; --paper:#ede9e0; --paper-dim:#b8b3a6;
+    --orange:#ff6a35; --blue:#5a86ad; --yellow:#f0c445; --line:rgba(237,233,224,0.16);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--paper); font-family:var(--sans); line-height:1.55; overflow-x:hidden; }
+  ::selection{background:var(--blue); color:#0f1a22;}
+  #cutline{ position:fixed; top:0; left:0; height:4px; width:0%;
+    background: repeating-linear-gradient(90deg, var(--blue) 0 8px, transparent 8px 14px);
+    z-index:100; transition:width .1s linear; box-shadow:0 0 8px var(--blue); }
+  nav.dots{ position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:14px; z-index:90; }
+  nav.dots button{ width:9px; height:9px; border-radius:50%; border:1px solid var(--paper-dim); background:transparent; cursor:pointer; padding:0; }
+  nav.dots button.active{ background:var(--blue); border-color:var(--blue); }
+  @media (max-width:720px){ nav.dots{ display:none; } }
+  section{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:8vh 8vw; position:relative; border-bottom:1px solid var(--line); }
+  .eyebrow{ font-family:var(--mono); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--blue); margin-bottom:1.1rem; display:flex; align-items:center; gap:.6em; }
+  .eyebrow::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--blue); box-shadow:0 0 6px var(--blue); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  h1{ font-size:clamp(2.2rem, 6.6vw, 5rem); margin:0 0 .3rem 0; letter-spacing:-.02em; font-weight:800; text-transform:uppercase; line-height:.98; }
+  h1 span{ color:var(--blue); }
+  h2{ font-size:clamp(1.5rem,3.4vw,2.4rem); margin:0 0 1rem; font-weight:800; letter-spacing:-.01em; }
+  p.lead{ font-size:clamp(1.05rem,1.6vw,1.3rem); max-width:640px; color:var(--paper-dim); }
+  .max{ max-width:760px; }
+  .reveal{ opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .card{ border:1px dashed var(--line); border-radius:2px; padding:1.6rem 1.8rem; background:var(--bg2); position:relative; }
+  .card::before{ content: attr(data-tag); position:absolute; top:-11px; left:16px; background:var(--bg); padding:0 8px; font-family:var(--mono); font-size:.7rem; letter-spacing:.12em; color:var(--paper-dim); text-transform:uppercase; }
+  .steps{ counter-reset:step; list-style:none; padding:0; margin:1.4rem 0 0; }
+  .steps li{ counter-increment:step; position:relative; padding:.7rem 0 .7rem 3rem; border-top:1px solid var(--line); }
+  .steps li:first-child{ border-top:none; }
+  .steps li::before{ content: counter(step,decimal-leading-zero); position:absolute; left:0; top:.7rem; font-family:var(--mono); color:var(--blue); font-weight:700; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:2.2rem; }
+  @media (max-width:860px){ .grid2{ grid-template-columns:1fr; } }
+  .demo{ display:grid; grid-template-columns: 300px 1fr; gap:2rem; align-items:start; background:var(--bg2); border:1px solid var(--line); border-radius:4px; padding:1.8rem; }
+  @media (max-width:760px){ .demo{ grid-template-columns:1fr; } }
+  .demo h3{ font-family:var(--mono); font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--yellow); margin:0 0 1rem;}
+  .ctrl{ margin-bottom:1.3rem; }
+  .ctrl label{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:.82rem; color:var(--paper-dim); margin-bottom:.35rem;}
+  .ctrl output{ color:var(--paper); }
+  input[type=range]{ width:100%; -webkit-appearance:none; height:3px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--blue); cursor:pointer; box-shadow:0 0 6px var(--blue); }
+  .canvas-wrap{ background:#0f0e0d; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; min-height:360px; overflow:hidden;}
+  .specs{ font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:.3rem 1rem;}
+  .specs b{ color:var(--paper); }
+  .choice{ border:1px solid var(--line); border-radius:3px; padding:1.2rem 1.4rem; }
+  .choice h4{ margin:0 0 .5rem; color:var(--orange); font-size:1rem; text-transform:uppercase; letter-spacing:.06em;}
+  .badge{ display:inline-block; font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; padding:.25em .6em; border-radius:2px; text-transform:uppercase; margin-right:.5em; }
+  .badge.pflicht{ background:var(--blue); color:#0f1a22; }
+  .badge.wahl{ background:var(--orange); color:#1c1b1a; }
+  .badge.zusatz{ background:var(--yellow); color:#1c1b1a; }
+  .warn{ border-left:3px solid var(--yellow); padding:.9rem 1.2rem; background:rgba(240,196,69,0.07); font-size:.95rem; color:var(--paper); }
+  .warn b{ color:var(--yellow); }
+  .checklist{ list-style:none; padding:0; margin:1.2rem 0 0; }
+  .checklist li{ padding:.5rem 0 .5rem 1.8rem; position:relative; border-top:1px solid var(--line); }
+  .checklist li:first-child{ border-top:none; }
+  .checklist li::before{ content:"▢"; position:absolute; left:0; color:var(--blue); }
+  footer{ padding:6vh 8vw; text-align:center; color:var(--paper-dim); font-family:var(--mono); font-size:.8rem; }
+  .scrolltip{ margin-top:2.4rem; font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); letter-spacing:.08em; }
+  .scrolltip::after{ content:"↓"; display:block; margin-top:.4rem; animation:bob 1.6s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(6px);} }
+  .kicker-num{ font-family:var(--mono); color:var(--paper-dim); }
+  .formula{ font-family:var(--mono); background:var(--bg2); border:1px solid var(--line); padding:.9rem 1.1rem; border-radius:3px; display:inline-block; margin:.4rem 0; }
+</style>
+</head>
+<body>
+
+<div id="cutline"></div>
+<nav class="dots" id="dots"></nav>
+
+<section id="s0">
+  <div class="eyebrow">Werkstatt-Auftrag 02 · Lasercutter</div>
+  <h1>SCHACHTEL<br>MIT <span>ZAPFEN</span></h1>
+  <p class="lead">Eine Kiste, die ganz ohne Leim hält — nur durch Geometrie. Du legst Masse fest, berechnest das Netz eines Quaders und lässt Zapfen ineinandergreifen.</p>
+  <div class="scrolltip reveal">Scrollen für den Auftrag</div>
+</section>
+
+<section id="s1">
+  <div class="eyebrow reveal">01 · Vom Körper zum Netz</div>
+  <h2 class="reveal">Ein Quader ist sechs Rechtecke.</h2>
+  <div class="grid2">
+    <div class="reveal">
+      <p>Jeder Quader besteht aus 3 Paaren gegenüberliegender, gleich grosser Rechtecke: Boden/Deckel, vorne/hinten, links/rechts. Faltet man ihn auf, entsteht ein <b>Netz</b> — genau das, was der Laser flach schneidet.</p>
+      <p>Damit die Seiten nach dem Schneiden zusammenhalten, bauen wir an den Kanten <b>Zapfen (Fingerjoints)</b>: abwechselnd vorstehende und zurückgesetzte Rechtecke, die ineinander greifen wie Zahnräder.</p>
+    </div>
+    <div class="card reveal" data-tag="Formeln">
+      <div class="formula">Oberfläche O = 2·(L·B + L·H + B·H)</div><br>
+      <div class="formula">Volumen V = L · B · H</div>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="eyebrow reveal"><span class="badge pflicht">Pflicht</span> Grundauftrag</div>
+  <h2 class="reveal">Baue eine Kiste für einen echten Zweck.</h2>
+  <p class="lead reveal">Miss den Gegenstand aus, den deine Kiste aufnehmen soll (z.B. Kopfhörer, Kartenspiel, Radiergummi-Sammlung) und plane 3-5 mm Spiel pro Seite ein.</p>
+  <ol class="steps reveal">
+    <li>Lege L (Länge), B (Breite), H (Höhe) in mm fest — gemessen am Objekt plus Spiel.</li>
+    <li>Berechne Oberfläche und Volumen von Hand, bevor du das Werkzeug unten nutzt.</li>
+    <li>Bestimme die Materialstärke (miss mit Schieblehre, meist 3-4 mm) — die Zapfenbreite entspricht genau dieser Stärke.</li>
+    <li>Zeichne alle 6 Flächen als Netz, mit Zapfen an jeder gemeinsamen Kante.</li>
+    <li>Prüfe: Passen die Zapfen zweier benachbarter Flächen exakt ineinander (Zahl und Breite gleich)?</li>
+  </ol>
+</section>
+
+<section id="s3">
+  <div class="eyebrow reveal">02 · Live-Werkzeug</div>
+  <h2 class="reveal">Vom Mass zum Netz.</h2>
+  <p class="lead reveal">Verändere L, B, H und die Materialstärke — das Werkzeug berechnet Volumen, Oberfläche und Zapfenzahl und zeigt dir das aufgefaltete Netz.</p>
+  <div class="demo reveal">
+    <div>
+      <h3>Masse (mm)</h3>
+      <div class="ctrl"><label>Länge L <output id="ov-l">80</output></label><input type="range" id="in-l" min="30" max="140" value="80"></div>
+      <div class="ctrl"><label>Breite B <output id="ov-b">60</output></label><input type="range" id="in-b" min="30" max="140" value="60"></div>
+      <div class="ctrl"><label>Höhe H <output id="ov-h">40</output></label><input type="range" id="in-h" min="20" max="100" value="40"></div>
+      <div class="ctrl"><label>Materialstärke <output id="ov-t">4</output> mm</label><input type="range" id="in-t" min="2" max="8" value="4"></div>
+      <div class="specs">
+        <span>Volumen:</span><b id="sp-vol">—</b>
+        <span>Oberfläche:</span><b id="sp-surf">—</b>
+        <span>Zapfen/lange Kante:</span><b id="sp-fl">—</b>
+        <span>Zapfen/kurze Kante:</span><b id="sp-fk">—</b>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <svg id="svg-net" width="380" height="360" viewBox="0 0 380 360"></svg>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="eyebrow reveal"><span class="badge wahl">Wahl</span> Erweiterung — wähle eine Variante</div>
+  <h2 class="reveal">Mach die Kiste zur Lösung.</h2>
+  <div class="grid2">
+    <div class="choice reveal">
+      <h4>A — Interne Fächer</h4>
+      <p>Teile das Volumen in 2-4 Fächer auf (z.B. für verschiedene Kartenspiel-Typen). Berechne die Fachmasse selbst so, dass sie zusammen wieder L bzw. B ergeben — inklusive Materialstärke der Trennwände, die vom Innenraum "abgezogen" werden muss.</p>
+    </div>
+    <div class="choice reveal">
+      <h4>B — Deckel mit Scharnier</h4>
+      <p>Konstruiere einen Deckel, der über ein einfaches Papier- oder Stoffscharnier (aufgeklebt) beweglich bleibt, statt separat aufgelegt zu werden. Plane den Überstand des Deckels über die Kistenwand ein (typisch 1-2 mm Spiel).</p>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="eyebrow reveal"><span class="badge zusatz">Zusatz</span> Königsdisziplin</div>
+  <h2 class="reveal">Kein Quader — ein Prisma.</h2>
+  <div class="grid2">
+    <p class="reveal">Baue eine Kiste mit sechseckigem statt rechteckigem Querschnitt. Berechne die Fläche eines regelmässigen Sechsecks mit <span class="kicker-num">A = (3√3⁄2)·a²</span> (a = Seitenlänge) und leite daraus die passenden Seitenlängen und Zapfenzahlen für alle 8 Flächen (6 Seiten + Boden + Deckel) her.</p>
+    <div class="card reveal" data-tag="Herausforderung">
+      <p style="margin:0;">Die Innenwinkel eines Sechsecks betragen 120° statt 90° — die Zapfen müssen also nicht rechtwinklig, sondern in diesem Winkel geschnitten werden. Skizziere zuerst von Hand, bevor du in Inkscape konstruierst.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="eyebrow reveal">Sicherheit &amp; Material</div>
+  <h2 class="reveal">Gleiche Regel wie immer am Laser.</h2>
+  <div class="warn reveal">
+    Nur freigegebene Materialien (Sperrholz, Pappe, Acrylglas nach Absprache). <b>Kein PVC, kein unbekannter Kunststoff.</b> Zapfen zuerst als Testschnitt in Restmaterial prüfen, bevor die ganze Kiste geschnitten wird — so verschwendest du kein Material bei falscher Zapfenbreite.
+  </div>
+</section>
+
+<section id="s7">
+  <div class="eyebrow reveal">Abgabe</div>
+  <h2 class="reveal">Checkliste vor dem Schnitt.</h2>
+  <ul class="checklist reveal max">
+    <li>L, B, H und Materialstärke schriftlich begründet (wofür ist die Kiste?)</li>
+    <li>Volumen und Oberfläche von Hand berechnet und mit Werkzeug verglichen</li>
+    <li>Zapfenbreite = gemessene Materialstärke, an einer Ecke testgeschnitten</li>
+    <li>Alle 6 (oder 8) Flächen im Netz vorhanden, keine Kante vergessen</li>
+    <li>Bei Wahl/Zusatz: Rechnung für Fächer bzw. Sechseck-Flächen beigelegt</li>
+  </ul>
+</section>
+
+<footer>MI-Werkstatt · Auftrag 02 / 05 · Lasercutter</footer>
+
+<script>
+(function(){
+  const cutline = document.getElementById('cutline');
+  window.addEventListener('scroll', ()=>{
+    const h = document.documentElement;
+    const pct = (h.scrollTop)/(h.scrollHeight - h.clientHeight) * 100;
+    cutline.style.width = pct + '%';
+  });
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); }); }, {threshold:0.15});
+  els.forEach(el=>io.observe(el));
+  const sections = document.querySelectorAll('section');
+  const dotsWrap = document.getElementById('dots');
+  sections.forEach((s)=>{ const b=document.createElement('button'); b.addEventListener('click', ()=> s.scrollIntoView({behavior:'smooth'})); dotsWrap.appendChild(b); });
+  const dotBtns = dotsWrap.querySelectorAll('button');
+  const io2 = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ const idx=Array.from(sections).indexOf(e.target); if(e.isIntersecting){ dotBtns.forEach(b=>b.classList.remove('active')); dotBtns[idx].classList.add('active'); } });
+  }, {threshold:0.5});
+  sections.forEach(s=>io2.observe(s));
+
+  // box net demo
+  const svg = document.getElementById('svg-net');
+  const inL=document.getElementById('in-l'), inB=document.getElementById('in-b'), inH=document.getElementById('in-h'), inT=document.getElementById('in-t');
+  const ovL=document.getElementById('ov-l'), ovB=document.getElementById('ov-b'), ovH=document.getElementById('ov-h'), ovT=document.getElementById('ov-t');
+  const spVol=document.getElementById('sp-vol'), spSurf=document.getElementById('sp-surf'), spFl=document.getElementById('sp-fl'), spFk=document.getElementById('sp-fk');
+
+  function teethRect(x,y,w,h,horizontal,teethCount,thick,phaseOut){
+    // returns a rect path with alternating notches along one edge to suggest finger joints
+    let d = 'M '+x+' '+y+' ';
+    if(horizontal){
+      const seg = w/teethCount;
+      d += 'L '+(x+w)+' '+y+' L '+(x+w)+' '+(y+h)+' ';
+      for(let i=teethCount;i>=1;i--){
+        const xa = x+ (i-1)*seg, xb = x+i*seg;
+        const out = ((i%2===0) === phaseOut);
+        const yy = out ? y+h+thick : y+h;
+        d += 'L '+xb+' '+yy+' L '+xa+' '+yy+' ';
+      }
+      d += 'Z';
+    } else {
+      d = 'M '+x+' '+y+' L '+x+' '+(y+h)+' L '+(x+w)+' '+(y+h)+' L '+(x+w)+' '+y+' Z';
+    }
+    return d;
+  }
+
+  function render(){
+    const L=parseInt(inL.value), B=parseInt(inB.value), H=parseInt(inH.value), T=parseInt(inT.value);
+    ovL.textContent=L; ovB.textContent=B; ovH.textContent=H; ovT.textContent=T;
+
+    const vol = L*B*H;
+    const surf = 2*(L*B + L*H + B*H);
+    spVol.textContent = (vol/1000).toFixed(1) + ' cm³';
+    spSurf.textContent = (surf/100).toFixed(1) + ' cm²';
+    const fingerW = Math.max(T, 4);
+    const fl = Math.max(3, Math.round(L/fingerW));
+    const fk = Math.max(3, Math.round(H/fingerW));
+    spFl.textContent = fl + ' Stk';
+    spFk.textContent = fk + ' Stk';
+
+    // scale to fit canvas
+    const scale = Math.min(280/(L+2*H), 260/(B+2*H));
+    const sl = L*scale, sb = B*scale, sh = H*scale;
+    const cx = 190 - sl/2, cy = 180 - sb/2;
+
+    let svgContent = '<rect x="0" y="0" width="380" height="360" fill="#0f0e0d"/>';
+    // cross layout: center = bottom (L x B), top attached above, left/right = H x B, front/back = L x H
+    // bottom
+    svgContent += '<rect x="'+cx+'" y="'+cy+'" width="'+sl+'" height="'+sb+'" fill="none" stroke="#5a86ad" stroke-width="1.6"/>';
+    // top (above bottom)
+    svgContent += '<rect x="'+cx+'" y="'+(cy-sh)+'" width="'+sl+'" height="'+sh+'" fill="none" stroke="#ff6a35" stroke-width="1.6"/>';
+    // bottom-flap (below)
+    svgContent += '<rect x="'+cx+'" y="'+(cy+sb)+'" width="'+sl+'" height="'+sh+'" fill="none" stroke="#ff6a35" stroke-width="1.6"/>';
+    // left
+    svgContent += '<rect x="'+(cx-sh)+'" y="'+cy+'" width="'+sh+'" height="'+sb+'" fill="none" stroke="#f0c445" stroke-width="1.6"/>';
+    // right
+    svgContent += '<rect x="'+(cx+sl)+'" y="'+cy+'" width="'+sh+'" height="'+sb+'" fill="none" stroke="#f0c445" stroke-width="1.6"/>';
+
+    // draw teeth marks (small ticks) along the bottom rectangle's edges to suggest finger joints
+    const teethN = Math.max(4, Math.min(10, fl));
+    for(let i=0;i<teethN;i++){
+      if(i%2===0){
+        const tx = cx + (i/teethN)*sl;
+        const tw = sl/teethN;
+        svgContent += '<rect x="'+tx.toFixed(1)+'" y="'+(cy-4)+'" width="'+tw.toFixed(1)+'" height="4" fill="#5a86ad" opacity="0.7"/>';
+        svgContent += '<rect x="'+tx.toFixed(1)+'" y="'+(cy+sb)+'" width="'+tw.toFixed(1)+'" height="4" fill="#5a86ad" opacity="0.7"/>';
+      }
+    }
+    const teethK = Math.max(3, Math.min(8, fk));
+    for(let i=0;i<teethK;i++){
+      if(i%2===0){
+        const ty = cy + (i/teethK)*sb;
+        const th = sb/teethK;
+        svgContent += '<rect x="'+(cx-4)+'" y="'+ty.toFixed(1)+'" width="4" height="'+th.toFixed(1)+'" fill="#5a86ad" opacity="0.7"/>';
+        svgContent += '<rect x="'+(cx+sl)+'" y="'+ty.toFixed(1)+'" width="4" height="'+th.toFixed(1)+'" fill="#5a86ad" opacity="0.7"/>';
+      }
+    }
+
+    svg.innerHTML = svgContent;
+  }
+  [inL,inB,inH,inT].forEach(i=>i.addEventListener('input', render));
+  render();
+})();
+</script>
+</body>
+</html>

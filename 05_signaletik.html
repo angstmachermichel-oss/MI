@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auftrag 05 — Signaletik fürs Schulhaus</title>
+<style>
+  :root{
+    --bg:#1c1b1a; --bg2:#242220; --paper:#ede9e0; --paper-dim:#b8b3a6;
+    --orange:#ff6a35; --blue:#5a86ad; --yellow:#f0c445; --line:rgba(237,233,224,0.16);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--paper); font-family:var(--sans); line-height:1.55; overflow-x:hidden; }
+  ::selection{background:var(--blue); color:#0f1a22;}
+  #cutline{ position:fixed; top:0; left:0; height:4px; width:0%;
+    background: repeating-linear-gradient(90deg, var(--blue) 0 8px, transparent 8px 14px);
+    z-index:100; transition:width .1s linear; box-shadow:0 0 8px var(--blue); }
+  nav.dots{ position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:14px; z-index:90; }
+  nav.dots button{ width:9px; height:9px; border-radius:50%; border:1px solid var(--paper-dim); background:transparent; cursor:pointer; padding:0; }
+  nav.dots button.active{ background:var(--blue); border-color:var(--blue); }
+  @media (max-width:720px){ nav.dots{ display:none; } }
+  section{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:8vh 8vw; position:relative; border-bottom:1px solid var(--line); }
+  .eyebrow{ font-family:var(--mono); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--blue); margin-bottom:1.1rem; display:flex; align-items:center; gap:.6em; }
+  .eyebrow::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--blue); box-shadow:0 0 6px var(--blue); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  h1{ font-size:clamp(2.1rem, 6.2vw, 4.8rem); margin:0 0 .3rem 0; letter-spacing:-.02em; font-weight:800; text-transform:uppercase; line-height:.98; }
+  h1 span{ color:var(--blue); }
+  h2{ font-size:clamp(1.5rem,3.4vw,2.4rem); margin:0 0 1rem; font-weight:800; letter-spacing:-.01em; }
+  p.lead{ font-size:clamp(1.05rem,1.6vw,1.3rem); max-width:640px; color:var(--paper-dim); }
+  .max{ max-width:760px; }
+  .reveal{ opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .card{ border:1px dashed var(--line); border-radius:2px; padding:1.6rem 1.8rem; background:var(--bg2); position:relative; }
+  .card::before{ content: attr(data-tag); position:absolute; top:-11px; left:16px; background:var(--bg); padding:0 8px; font-family:var(--mono); font-size:.7rem; letter-spacing:.12em; color:var(--paper-dim); text-transform:uppercase; }
+  .steps{ counter-reset:step; list-style:none; padding:0; margin:1.4rem 0 0; }
+  .steps li{ counter-increment:step; position:relative; padding:.7rem 0 .7rem 3rem; border-top:1px solid var(--line); }
+  .steps li:first-child{ border-top:none; }
+  .steps li::before{ content: counter(step,decimal-leading-zero); position:absolute; left:0; top:.7rem; font-family:var(--mono); color:var(--blue); font-weight:700; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:2.2rem; }
+  @media (max-width:860px){ .grid2{ grid-template-columns:1fr; } }
+  .demo{ display:grid; grid-template-columns: 300px 1fr; gap:2rem; align-items:start; background:var(--bg2); border:1px solid var(--line); border-radius:4px; padding:1.8rem; }
+  @media (max-width:760px){ .demo{ grid-template-columns:1fr; } }
+  .demo h3{ font-family:var(--mono); font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--yellow); margin:0 0 1rem;}
+  .ctrl{ margin-bottom:1rem; }
+  .ctrl label{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:.82rem; color:var(--paper-dim); margin-bottom:.35rem;}
+  button.tool{
+    font-family:var(--mono); font-size:.78rem; background:#0f0e0d; color:var(--paper); border:1px solid var(--line);
+    padding:.5rem .8rem; border-radius:3px; cursor:pointer; margin-right:.4rem; margin-bottom:.5rem;
+  }
+  button.tool.active{ background:var(--blue); color:#0f1a22; border-color:var(--blue); }
+  .canvas-wrap{ background:#0f0e0d; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; min-height:360px; }
+  #grid-icon{ display:grid; gap:2px; }
+  #grid-icon .cell{ width:22px; height:22px; background:#242220; border:1px solid #3a3733; cursor:pointer; }
+  #grid-icon .cell.on{ background:var(--blue); border-color:var(--blue); }
+  .specs{ font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:.3rem 1rem;}
+  .specs b{ color:var(--paper); }
+  .choice{ border:1px solid var(--line); border-radius:3px; padding:1.2rem 1.4rem; }
+  .choice h4{ margin:0 0 .5rem; color:var(--orange); font-size:1rem; text-transform:uppercase; letter-spacing:.06em;}
+  .badge{ display:inline-block; font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; padding:.25em .6em; border-radius:2px; text-transform:uppercase; margin-right:.5em; }
+  .badge.pflicht{ background:var(--blue); color:#0f1a22; }
+  .badge.wahl{ background:var(--orange); color:#1c1b1a; }
+  .badge.zusatz{ background:var(--yellow); color:#1c1b1a; }
+  .warn{ border-left:3px solid var(--yellow); padding:.9rem 1.2rem; background:rgba(240,196,69,0.07); font-size:.95rem; color:var(--paper); }
+  .warn b{ color:var(--yellow); }
+  .checklist{ list-style:none; padding:0; margin:1.2rem 0 0; }
+  .checklist li{ padding:.5rem 0 .5rem 1.8rem; position:relative; border-top:1px solid var(--line); }
+  .checklist li:first-child{ border-top:none; }
+  .checklist li::before{ content:"▢"; position:absolute; left:0; color:var(--blue); }
+  footer{ padding:6vh 8vw; text-align:center; color:var(--paper-dim); font-family:var(--mono); font-size:.8rem; }
+  .scrolltip{ margin-top:2.4rem; font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); letter-spacing:.08em; }
+  .scrolltip::after{ content:"↓"; display:block; margin-top:.4rem; animation:bob 1.6s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(6px);} }
+  .kicker-num{ font-family:var(--mono); color:var(--paper-dim); }
+</style>
+</head>
+<body>
+
+<div id="cutline"></div>
+<nav class="dots" id="dots"></nav>
+
+<section id="s0">
+  <div class="eyebrow">Werkstatt-Auftrag 05 · Lasercutter · Team-Projekt</div>
+  <h1>SIGNALETIK<br>FÜRS <span>SCHULHAUS</span></h1>
+  <p class="lead">Kein Übungsobjekt für die Schublade — ein Schild, das wirklich im Schulhaus hängt. Ihr entwerft ein Zeichensystem, das jede Person versteht, egal welche Sprache sie spricht.</p>
+  <div class="scrolltip reveal">Scrollen für den Auftrag</div>
+</section>
+
+<section id="s1">
+  <div class="eyebrow reveal">01 · Wegleitsysteme</div>
+  <h2 class="reveal">Ein gutes Zeichen braucht keine Übersetzung.</h2>
+  <div class="grid2">
+    <div class="reveal">
+      <p>Piktogramme an Bahnhöfen oder Flughäfen funktionieren weltweit, weil sie auf wenige, klare Formen reduziert sind — kein Text nötig. Eine ganze <b>Zeichenfamilie</b> (z.B. alle Raum-Symbole eurer Schule) muss zudem konsistent wirken: gleiche Strichstärke, gleicher Stil, gleiche Grösse.</p>
+      <p>Ihr bekommt eine echte Aufgabe: Ersetzt oder ergänzt Beschriftungen im Schulhaus mit einem System, das ihr selbst entwerft und lasergraviert.</p>
+    </div>
+    <div class="card reveal" data-tag="Team-Rollen">
+      <p style="margin:0;">Teilt die Arbeit auf: <b style="color:var(--blue)">Icon-Design</b>, <b style="color:var(--orange)">Typografie/Layout</b>, <b style="color:var(--yellow)">Technische Umsetzung</b> (Masse, Vektor, Schnitt). Jede Rolle bringt eigene Anforderungen — und damit automatisch unterschiedlichen Schwierigkeitsgrad.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="eyebrow reveal"><span class="badge pflicht">Pflicht</span> Grundauftrag</div>
+  <h2 class="reveal">Gestaltet ein Raumschild.</h2>
+  <p class="lead reveal">Ziel: ein einheitliches Schild-Template mit Raumnummer, Icon und Raumname, das für mindestens 3 verschiedene Räume funktioniert.</p>
+  <ol class="steps reveal">
+    <li>Legt eine gemeinsame Schildgrösse fest (z.B. 150×80 mm) — für alle Teams gleich.</li>
+    <li>Entwerft ein Icon-Raster: gleiche Strichstärke, gleicher Rand, gleiche Proportionen für alle Icons.</li>
+    <li>Testet euer Icon im Werkzeug unten — reicht die Auflösung, um es noch zu erkennen?</li>
+    <li>Platziert Raumnummer (graviert, gross) und Raumname (graviert, klein) nach klarer Regel (immer gleiche Position).</li>
+    <li>Druckt/schneidet einen Prototyp auf Restmaterial, bevor das finale Schild entsteht.</li>
+  </ol>
+</section>
+
+<section id="s3">
+  <div class="eyebrow reveal">02 · Live-Werkzeug</div>
+  <h2 class="reveal">Entwirf ein Piktogramm im Raster.</h2>
+  <p class="lead reveal">Klicke Zellen an, um ein einfaches Icon zu bauen (z.B. für "Lager", "Werkstatt", "Toilette"). Das Raster zeigt dir, wie wenig Information nötig ist, damit ein Symbol trotzdem erkennbar bleibt.</p>
+  <div class="demo reveal">
+    <div>
+      <h3>Werkzeug</h3>
+      <button class="tool active" id="btn-draw">Zeichnen</button>
+      <button class="tool" id="btn-erase">Löschen</button>
+      <button class="tool" id="btn-clear">Alles löschen</button>
+      <button class="tool" id="btn-mirror">Spiegeln (Symmetrie prüfen)</button>
+      <div class="specs">
+        <span>Aktive Zellen:</span><b id="sp-cells">0</b>
+        <span>Rastergrösse:</span><b>12 × 12</b>
+        <span>Symmetrisch:</span><b id="sp-sym">—</b>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <div id="grid-icon"></div>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="eyebrow reveal"><span class="badge wahl">Wahl</span> Erweiterung — wähle eine Variante</div>
+  <h2 class="reveal">Vom Einzelschild zum System.</h2>
+  <div class="grid2">
+    <div class="choice reveal">
+      <h4>A — Mehrsprachiges Schild</h4>
+      <p>Erweitert ein Schild um eine zweite Sprache (z.B. Französisch, passend zur zweisprachigen Region Biel/Bienne). Überlegt: Wie viel Platz braucht welcher Text, ohne dass das Layout aus der Balance gerät?</p>
+    </div>
+    <div class="choice reveal">
+      <h4>B — Leitsystem für ein Stockwerk</h4>
+      <p>Entwerft ein System aus Richtungspfeilen und Icons, das eine Besucherin vom Eingang bis zu einem bestimmten Raum führt. Zeichnet einen Grundriss-Ausschnitt und platziert eure Zeichen an den Entscheidungspunkten (Kreuzungen, Treppenhäuser).</p>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="eyebrow reveal"><span class="badge zusatz">Zusatz</span> Königsdisziplin</div>
+  <h2 class="reveal">Ein Regelwerk statt einzelner Icons.</h2>
+  <div class="grid2">
+    <p class="reveal">Definiert ein schriftliches Regelwerk für eure Icon-Familie: feste Strichstärke, feste Eckenradien, festes Raster (z.B. immer 12×12 Felder), maximal 2 Farben. Entwerft danach mindestens 5 verschiedene Icons, die alle exakt dieses Regelwerk befolgen — und zeigt, wo ihr bewusst von der Regel abweichen musstet und warum.</p>
+    <div class="card reveal" data-tag="Bonuspunkt">
+      <p style="margin:0;">Ein Regelwerk, das andere Teams übernehmen können, ohne euch zu fragen, ist ein echtes <b>Design-System</b> — genau das, was grosse Institutionen (SBB, Flughäfen) für ihre Beschriftung nutzen.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="eyebrow reveal">Abstimmung</div>
+  <h2 class="reveal">Das hier ist kein Übungsobjekt.</h2>
+  <div class="warn reveal">
+    Bevor ein Schild montiert wird: Absprache mit der Schulleitung/dem Hausdienst zu Material, Befestigung und genauer Platzierung. Kein Schild wird ohne Freigabe angebracht.
+  </div>
+</section>
+
+<section id="s7">
+  <div class="eyebrow reveal">Abgabe</div>
+  <h2 class="reveal">Checkliste vor der Produktion.</h2>
+  <ul class="checklist reveal max">
+    <li>Schildgrösse und Icon-Raster für alle Teams identisch</li>
+    <li>Prototyp auf Restmaterial getestet und für erkennbar befunden</li>
+    <li>Text/Icon-Platzierung nach klarer, wiederholbarer Regel</li>
+    <li>Freigabe durch Schulleitung/Hausdienst eingeholt</li>
+    <li>Bei Wahl/Zusatz: Regelwerk bzw. Leitsystem-Plan schriftlich beigelegt</li>
+  </ul>
+</section>
+
+<footer>MI-Werkstatt · Auftrag 05 / 05 · Lasercutter · Team-Projekt</footer>
+
+<script>
+(function(){
+  const cutline = document.getElementById('cutline');
+  window.addEventListener('scroll', ()=>{
+    const h = document.documentElement;
+    const pct = (h.scrollTop)/(h.scrollHeight - h.clientHeight) * 100;
+    cutline.style.width = pct + '%';
+  });
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); }); }, {threshold:0.15});
+  els.forEach(el=>io.observe(el));
+  const sections = document.querySelectorAll('section');
+  const dotsWrap = document.getElementById('dots');
+  sections.forEach((s)=>{ const b=document.createElement('button'); b.addEventListener('click', ()=> s.scrollIntoView({behavior:'smooth'})); dotsWrap.appendChild(b); });
+  const dotBtns = dotsWrap.querySelectorAll('button');
+  const io2 = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ const idx=Array.from(sections).indexOf(e.target); if(e.isIntersecting){ dotBtns.forEach(b=>b.classList.remove('active')); dotBtns[idx].classList.add('active'); } });
+  }, {threshold:0.5});
+  sections.forEach(s=>io2.observe(s));
+
+  // pixel icon grid
+  const N = 12;
+  const gridEl = document.getElementById('grid-icon');
+  gridEl.style.gridTemplateColumns = 'repeat('+N+', 22px)';
+  const cells = [];
+  let mode = 'draw';
+  let mouseDown = false;
+
+  for(let i=0;i<N*N;i++){
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.dataset.idx = i;
+    gridEl.appendChild(c);
+    cells.push(c);
+  }
+  gridEl.addEventListener('mousedown', (e)=>{ mouseDown=true; paint(e); });
+  window.addEventListener('mouseup', ()=> mouseDown=false);
+  gridEl.addEventListener('mousemove', (e)=>{ if(mouseDown) paint(e); });
+  gridEl.addEventListener('click', paint);
+
+  function paint(e){
+    if(!e.target.classList.contains('cell')) return;
+    if(mode==='draw') e.target.classList.add('on');
+    if(mode==='erase') e.target.classList.remove('on');
+    updateSpecs();
+  }
+
+  function updateSpecs(){
+    const active = cells.filter(c=>c.classList.contains('on')).length;
+    document.getElementById('sp-cells').textContent = active;
+    // check horizontal symmetry
+    let symmetric = true;
+    for(let r=0;r<N;r++){
+      for(let col=0; col<N/2; col++){
+        const a = cells[r*N+col].classList.contains('on');
+        const b = cells[r*N+(N-1-col)].classList.contains('on');
+        if(a!==b){ symmetric=false; break; }
+      }
+    }
+    document.getElementById('sp-sym').textContent = symmetric ? 'ja' : 'nein';
+  }
+
+  document.getElementById('btn-draw').addEventListener('click', (e)=>{ mode='draw'; setActive(e.target); });
+  document.getElementById('btn-erase').addEventListener('click', (e)=>{ mode='erase'; setActive(e.target); });
+  document.getElementById('btn-clear').addEventListener('click', ()=>{ cells.forEach(c=>c.classList.remove('on')); updateSpecs(); });
+  document.getElementById('btn-mirror').addEventListener('click', ()=>{
+    for(let r=0;r<N;r++){
+      for(let col=0; col<N/2; col++){
+        const left = cells[r*N+col];
+        const right = cells[r*N+(N-1-col)];
+        if(left.classList.contains('on') || right.classList.contains('on')){
+          left.classList.add('on'); right.classList.add('on');
+        }
+      }
+    }
+    updateSpecs();
+  });
+  function setActive(btn){
+    document.querySelectorAll('.tool').forEach(b=>b.classList.remove('active'));
+    if(btn.id==='btn-draw' || btn.id==='btn-erase') btn.classList.add('active');
+  }
+  updateSpecs();
+})();
+</script>
+</body>
+</html>

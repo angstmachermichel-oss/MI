@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auftrag 04 — Generative Kunst</title>
+<style>
+  :root{
+    --bg:#1c1b1a; --bg2:#242220; --paper:#ede9e0; --paper-dim:#b8b3a6;
+    --orange:#ff6a35; --blue:#5a86ad; --yellow:#f0c445; --green:#7fbf7f; --line:rgba(237,233,224,0.16);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{ margin:0; background:var(--bg); color:var(--paper); font-family:var(--sans); line-height:1.55; overflow-x:hidden; }
+  ::selection{background:var(--green); color:#1c1b1a;}
+  #cutline{ position:fixed; top:0; left:0; height:4px; width:0%;
+    background: repeating-linear-gradient(90deg, var(--green) 0 8px, transparent 8px 14px);
+    z-index:100; transition:width .1s linear; box-shadow:0 0 8px var(--green); }
+  nav.dots{ position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:14px; z-index:90; }
+  nav.dots button{ width:9px; height:9px; border-radius:50%; border:1px solid var(--paper-dim); background:transparent; cursor:pointer; padding:0; }
+  nav.dots button.active{ background:var(--green); border-color:var(--green); }
+  @media (max-width:720px){ nav.dots{ display:none; } }
+  section{ min-height:100vh; display:flex; flex-direction:column; justify-content:center; padding:8vh 8vw; position:relative; border-bottom:1px solid var(--line); }
+  .eyebrow{ font-family:var(--mono); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:1.1rem; display:flex; align-items:center; gap:.6em; }
+  .eyebrow::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  h1{ font-size:clamp(2.2rem, 6.6vw, 5rem); margin:0 0 .3rem 0; letter-spacing:-.02em; font-weight:800; text-transform:uppercase; line-height:.98; }
+  h1 span{ color:var(--green); }
+  h2{ font-size:clamp(1.5rem,3.4vw,2.4rem); margin:0 0 1rem; font-weight:800; letter-spacing:-.01em; }
+  p.lead{ font-size:clamp(1.05rem,1.6vw,1.3rem); max-width:640px; color:var(--paper-dim); }
+  .max{ max-width:760px; }
+  .reveal{ opacity:0; transform:translateY(24px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:translateY(0); }
+  .card{ border:1px dashed var(--line); border-radius:2px; padding:1.6rem 1.8rem; background:var(--bg2); position:relative; }
+  .card::before{ content: attr(data-tag); position:absolute; top:-11px; left:16px; background:var(--bg); padding:0 8px; font-family:var(--mono); font-size:.7rem; letter-spacing:.12em; color:var(--paper-dim); text-transform:uppercase; }
+  .steps{ counter-reset:step; list-style:none; padding:0; margin:1.4rem 0 0; }
+  .steps li{ counter-increment:step; position:relative; padding:.7rem 0 .7rem 3rem; border-top:1px solid var(--line); }
+  .steps li:first-child{ border-top:none; }
+  .steps li::before{ content: counter(step,decimal-leading-zero); position:absolute; left:0; top:.7rem; font-family:var(--mono); color:var(--green); font-weight:700; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:2.2rem; }
+  @media (max-width:860px){ .grid2{ grid-template-columns:1fr; } }
+  .demo{ display:grid; grid-template-columns: 300px 1fr; gap:2rem; align-items:start; background:var(--bg2); border:1px solid var(--line); border-radius:4px; padding:1.8rem; }
+  @media (max-width:760px){ .demo{ grid-template-columns:1fr; } }
+  .demo h3{ font-family:var(--mono); font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--orange); margin:0 0 1rem;}
+  .ctrl{ margin-bottom:1.3rem; }
+  .ctrl label{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:.82rem; color:var(--paper-dim); margin-bottom:.35rem;}
+  .ctrl output{ color:var(--paper); }
+  input[type=range]{ width:100%; -webkit-appearance:none; height:3px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--green); cursor:pointer; box-shadow:0 0 6px var(--green); }
+  select{ width:100%; background:#0f0e0d; color:var(--paper); border:1px solid var(--line); padding:.5rem; font-family:var(--mono); border-radius:3px; }
+  .canvas-wrap{ background:#0f0e0d; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; min-height:360px; }
+  .specs{ font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:.3rem 1rem;}
+  .specs b{ color:var(--paper); }
+  .choice{ border:1px solid var(--line); border-radius:3px; padding:1.2rem 1.4rem; }
+  .choice h4{ margin:0 0 .5rem; color:var(--blue); font-size:1rem; text-transform:uppercase; letter-spacing:.06em;}
+  .badge{ display:inline-block; font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; padding:.25em .6em; border-radius:2px; text-transform:uppercase; margin-right:.5em; }
+  .badge.pflicht{ background:var(--green); color:#1c1b1a; }
+  .badge.wahl{ background:var(--blue); color:#0f1a22; }
+  .badge.zusatz{ background:var(--orange); color:#1c1b1a; }
+  .warn{ border-left:3px solid var(--yellow); padding:.9rem 1.2rem; background:rgba(240,196,69,0.07); font-size:.95rem; color:var(--paper); }
+  .warn b{ color:var(--yellow); }
+  .checklist{ list-style:none; padding:0; margin:1.2rem 0 0; }
+  .checklist li{ padding:.5rem 0 .5rem 1.8rem; position:relative; border-top:1px solid var(--line); }
+  .checklist li:first-child{ border-top:none; }
+  .checklist li::before{ content:"▢"; position:absolute; left:0; color:var(--green); }
+  footer{ padding:6vh 8vw; text-align:center; color:var(--paper-dim); font-family:var(--mono); font-size:.8rem; }
+  .scrolltip{ margin-top:2.4rem; font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); letter-spacing:.08em; }
+  .scrolltip::after{ content:"↓"; display:block; margin-top:.4rem; animation:bob 1.6s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(6px);} }
+  .kicker-num{ font-family:var(--mono); color:var(--paper-dim); }
+  pre.code{ font-family:var(--mono); font-size:.82rem; background:#0f0e0d; border:1px solid var(--line); border-radius:3px; padding:1rem 1.2rem; overflow-x:auto; color:var(--green); }
+</style>
+</head>
+<body>
+
+<div id="cutline"></div>
+<nav class="dots" id="dots"></nav>
+
+<section id="s0">
+  <div class="eyebrow">Werkstatt-Auftrag 04 · Code &amp; Lasercutter</div>
+  <h1>GENERATIVE<br><span>KUNST</span></h1>
+  <p class="lead">Ein Algorithmus ist eine Regel. Ein Muster ist, was passiert, wenn man diese Regel hundertmal wiederholt. Du schreibst die Regel — der Computer zeichnet, der Laser schneidet.</p>
+  <div class="scrolltip reveal">Scrollen für den Auftrag</div>
+</section>
+
+<section id="s1">
+  <div class="eyebrow reveal">01 · Regeln statt Klicks</div>
+  <h2 class="reveal">Eine Schlaufe erzeugt ein Muster.</h2>
+  <div class="grid2">
+    <div class="reveal">
+      <p>Statt jede Linie einzeln zu zeichnen, schreibst du eine <b>Schlaufe (Loop)</b>, die z.B. 50-mal einen Strich zeichnet und dabei jedes Mal Winkel oder Länge leicht verändert. Aus wenigen Zeilen Code entsteht ein komplexes Bild.</p>
+      <p>Das nennt man <b>generative Kunst</b>: Das Muster ist nicht "gemalt", sondern <b>berechnet</b> — und kann durch Ändern eines einzigen Parameters komplett anders aussehen.</p>
+    </div>
+    <div class="card reveal" data-tag="Minimalbeispiel">
+      <pre class="code">für i von 0 bis 50:
+  zeichne Linie
+  drehe um winkel°
+  winkel = winkel + 3</pre>
+    </div>
+  </div>
+</section>
+
+<section id="s2">
+  <div class="eyebrow reveal"><span class="badge pflicht">Pflicht</span> Grundauftrag</div>
+  <h2 class="reveal">Baue dein eigenes Loop-Muster.</h2>
+  <p class="lead reveal">Ziel: ein Muster aus mindestens einer Schlaufe, das du erklären kannst — nicht nur zeigen.</p>
+  <ol class="steps reveal">
+    <li>Spiele mit dem Werkzeug unten, bis dir ein Muster gefällt.</li>
+    <li>Notiere die vier Werte (Zweige, Winkel, Längenverhältnis, Zufall), die dieses Muster erzeugen.</li>
+    <li>Beschreibe in eigenen Worten die Regel: "Bei jedem Schritt wird ... um ... verändert."</li>
+    <li>Exportiere dein Muster als Skizze/Screenshot und baue die Form anschliessend als Vektor in Inkscape nach (für den Laser).</li>
+  </ol>
+</section>
+
+<section id="s3">
+  <div class="eyebrow reveal">02 · Live-Werkzeug</div>
+  <h2 class="reveal">Ein rekursiver Baum.</h2>
+  <p class="lead reveal">Jeder Ast erzeugt zwei kleinere Äste — eine Regel, die sich selbst aufruft (<b>Rekursion</b>). Verändere Tiefe, Winkel, Längenverhältnis und Zufall.</p>
+  <div class="demo reveal">
+    <div>
+      <h3>Parameter</h3>
+      <div class="ctrl"><label>Verzweigungstiefe <output id="ov-depth">9</output></label><input type="range" id="in-depth" min="2" max="13" value="9"></div>
+      <div class="ctrl"><label>Winkel <output id="ov-angle">25</output>°</label><input type="range" id="in-angle" min="5" max="60" value="25"></div>
+      <div class="ctrl"><label>Längenverhältnis <output id="ov-ratio">72</output>%</label><input type="range" id="in-ratio" min="50" max="90" value="72"></div>
+      <div class="ctrl"><label>Zufall <output id="ov-rand">10</output>%</label><input type="range" id="in-rand" min="0" max="40" value="10"></div>
+      <div class="ctrl">
+        <label style="display:block;margin-bottom:.35rem;">Farbmodus</label>
+        <select id="in-color">
+          <option value="mono">Einfarbig (für Laser)</option>
+          <option value="depth">Nach Tiefe eingefärbt</option>
+        </select>
+      </div>
+      <div class="specs">
+        <span>Äste total:</span><b id="sp-branches">—</b>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="cv-tree" width="320" height="360"></canvas>
+    </div>
+  </div>
+</section>
+
+<section id="s4">
+  <div class="eyebrow reveal"><span class="badge wahl">Wahl</span> Erweiterung — wähle eine Variante</div>
+  <h2 class="reveal">Verändere die Regel, nicht nur die Werte.</h2>
+  <div class="grid2">
+    <div class="choice reveal">
+      <h4>A — Dritter Ast</h4>
+      <p>Verändere die Regel so, dass aus jedem Punkt <b>drei</b> statt zwei Äste wachsen (mittlerer Ast gerade, zwei seitliche). Beschreibe, wie sich die Gesamtzahl der Äste bei gleicher Tiefe dadurch verändert.</p>
+    </div>
+    <div class="choice reveal">
+      <h4>B — Kontrollierter Zufall</h4>
+      <p>Nutze den Zufall-Regler, um eine Version zu finden, die "organisch" statt "mechanisch" wirkt. Erkläre, warum zu viel Zufall die Struktur zerstört und zu wenig sie langweilig macht — finde den Punkt dazwischen.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s5">
+  <div class="eyebrow reveal"><span class="badge zusatz">Zusatz</span> Königsdisziplin</div>
+  <h2 class="reveal">Vom Bildschirm zum Lampenschirm.</h2>
+  <div class="grid2">
+    <p class="reveal">Nimm dein bestes Muster und plane daraus ein reales Objekt — z.B. einen Lampenschirm oder eine Wanddeko. Überlege: Welche Linien müssen geschlossen sein, damit der Laser ein zusammenhängendes Teil schneidet (nicht nur lose Striche)? Baue die Vektorversion in Inkscape.</p>
+    <div class="card reveal" data-tag="Bonuspunkt">
+      <p style="margin:0;">Wer sein Muster mit einer <b>zweiten, eigenen Funktion</b> kombiniert (z.B. Baum + Spirale aus Auftrag 1), zeigt, dass Regeln kombinierbar sind — die Basis jeder komplexeren generativen Kunst.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s6">
+  <div class="eyebrow reveal">Zur Beachtung</div>
+  <h2 class="reveal">Code verstehen, nicht nur kopieren.</h2>
+  <div class="warn reveal">
+    Wenn du Code-Beispiele aus dem Internet nutzt: verstehe, was jede Zeile macht, bevor du sie einbaust. Ein Muster, das du nicht erklären kannst, zählt nicht als eigene Lösung.
+  </div>
+</section>
+
+<section id="s7">
+  <div class="eyebrow reveal">Abgabe</div>
+  <h2 class="reveal">Checkliste vor der Abgabe.</h2>
+  <ul class="checklist reveal max">
+    <li>Vier Parameterwerte deines Musters notiert</li>
+    <li>Regel in eigenen Worten beschrieben</li>
+    <li>Vektorversion in Inkscape für den Laser vorbereitet (geschlossene Linien)</li>
+    <li>Bei Wahl/Zusatz: veränderte Regel bzw. Kombination erklärt</li>
+  </ul>
+</section>
+
+<footer>MI-Werkstatt · Auftrag 04 / 05 · Code &amp; Lasercutter</footer>
+
+<script>
+(function(){
+  const cutline = document.getElementById('cutline');
+  window.addEventListener('scroll', ()=>{
+    const h = document.documentElement;
+    const pct = (h.scrollTop)/(h.scrollHeight - h.clientHeight) * 100;
+    cutline.style.width = pct + '%';
+  });
+  const els = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('in'); }); }, {threshold:0.15});
+  els.forEach(el=>io.observe(el));
+  const sections = document.querySelectorAll('section');
+  const dotsWrap = document.getElementById('dots');
+  sections.forEach((s)=>{ const b=document.createElement('button'); b.addEventListener('click', ()=> s.scrollIntoView({behavior:'smooth'})); dotsWrap.appendChild(b); });
+  const dotBtns = dotsWrap.querySelectorAll('button');
+  const io2 = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ const idx=Array.from(sections).indexOf(e.target); if(e.isIntersecting){ dotBtns.forEach(b=>b.classList.remove('active')); dotBtns[idx].classList.add('active'); } });
+  }, {threshold:0.5});
+  sections.forEach(s=>io2.observe(s));
+
+  // recursive tree canvas
+  const cv = document.getElementById('cv-tree');
+  const ctx = cv.getContext('2d');
+  const inDepth=document.getElementById('in-depth'), inAngle=document.getElementById('in-angle'), inRatio=document.getElementById('in-ratio'), inRand=document.getElementById('in-rand'), inColor=document.getElementById('in-color');
+  const ovDepth=document.getElementById('ov-depth'), ovAngle=document.getElementById('ov-angle'), ovRatio=document.getElementById('ov-ratio'), ovRand=document.getElementById('ov-rand');
+  const spBranches=document.getElementById('sp-branches');
+
+  let branchCount = 0;
+  const colors = ['#7fbf7f','#5a86ad','#f0c445','#ff6a35','#ede9e0'];
+
+  function drawBranch(x,y,len,angle,depth,maxDepth,angleInc,ratio,rand,colorMode){
+    if(depth===0 || len<2) return;
+    branchCount++;
+    const rnd = (Math.random()-0.5)*2*rand*0.01;
+    const a = angle + rnd;
+    const x2 = x + len*Math.cos(a);
+    const y2 = y + len*Math.sin(a);
+    ctx.strokeStyle = colorMode==='depth' ? colors[(maxDepth-depth)%colors.length] : '#7fbf7f';
+    ctx.lineWidth = Math.max(1, depth*0.5);
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x2,y2);
+    ctx.stroke();
+    const newLen = len*ratio;
+    drawBranch(x2,y2,newLen, a - angleInc*(Math.PI/180), depth-1, maxDepth, angleInc, ratio, rand, colorMode);
+    drawBranch(x2,y2,newLen, a + angleInc*(Math.PI/180), depth-1, maxDepth, angleInc, ratio, rand, colorMode);
+  }
+
+  function render(){
+    const depth = parseInt(inDepth.value);
+    const angle = parseInt(inAngle.value);
+    const ratio = parseInt(inRatio.value)/100;
+    const rand = parseInt(inRand.value);
+    const colorMode = inColor.value;
+    ovDepth.textContent=depth; ovAngle.textContent=angle; ovRatio.textContent=inRatio.value; ovRand.textContent=rand;
+
+    ctx.fillStyle = '#0f0e0d';
+    ctx.fillRect(0,0,320,360);
+    branchCount = 0;
+    drawBranch(160, 350, 70, -Math.PI/2, depth, depth, angle, ratio, rand, colorMode);
+    spBranches.textContent = branchCount;
+  }
+  [inDepth,inAngle,inRatio,inRand,inColor].forEach(i=>i.addEventListener('input', render));
+  render();
+})();
+</script>
+</body>
+</html>

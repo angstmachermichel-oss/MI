@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generative Werkzeug-Sammlung</title>
+<style>
+  :root{
+    --bg:#1c1b1a; --bg2:#242220; --paper:#ede9e0; --paper-dim:#b8b3a6;
+    --orange:#ff6a35; --blue:#5a86ad; --yellow:#f0c445; --green:#7fbf7f; --purple:#b98cd6; --line:rgba(237,233,224,0.16);
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--paper); font-family:var(--sans); line-height:1.55; }
+  ::selection{background:var(--green); color:#1c1b1a;}
+
+  header{ padding:5vh 6vw 3vh; border-bottom:1px solid var(--line); }
+  .eyebrow{ font-family:var(--mono); font-size:.78rem; letter-spacing:.18em; text-transform:uppercase; color:var(--green); margin-bottom:.9rem; display:flex; align-items:center; gap:.6em; }
+  .eyebrow::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green); animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  h1{ font-size:clamp(1.8rem, 4.6vw, 3rem); margin:0 0 .5rem; letter-spacing:-.02em; font-weight:800; text-transform:uppercase; }
+  h1 span{ color:var(--green); }
+  p.lead{ font-size:1.05rem; max-width:680px; color:var(--paper-dim); margin:0; }
+
+  .tabs{ display:flex; flex-wrap:wrap; gap:.6rem; padding:0 6vw; margin-top:2.4rem; }
+  .tab{
+    font-family:var(--mono); font-size:.82rem; letter-spacing:.04em; background:var(--bg2); color:var(--paper-dim);
+    border:1px solid var(--line); padding:.6rem 1.1rem; border-radius:3px 3px 0 0; cursor:pointer; border-bottom:none;
+    position:relative; top:1px;
+  }
+  .tab.active{ background:var(--bg); color:var(--paper); border-color:var(--tool-color, var(--green)); border-bottom:1px solid var(--bg); }
+  .tab .num{ color:var(--tool-color, var(--green)); margin-right:.4em; }
+
+  main{ padding:2.4rem 6vw 6vh; border-top:1px solid var(--line); }
+
+  .tool-panel{ display:none; }
+  .tool-panel.active{ display:block; }
+
+  .intro{ max-width:720px; margin-bottom:1.8rem; color:var(--paper-dim); }
+  .intro b{ color:var(--paper); }
+  .rule{
+    font-family:var(--mono); font-size:.82rem; background:var(--bg2); border:1px solid var(--line); border-radius:3px;
+    padding:.9rem 1.1rem; display:inline-block; color:var(--tool-color, var(--green)); margin-bottom:1.6rem;
+  }
+
+  .demo{ display:grid; grid-template-columns: 300px 1fr; gap:2rem; align-items:start; background:var(--bg2); border:1px solid var(--line); border-radius:4px; padding:1.8rem; }
+  @media (max-width:760px){ .demo{ grid-template-columns:1fr; } }
+  .demo h3{ font-family:var(--mono); font-size:.85rem; letter-spacing:.1em; text-transform:uppercase; color:var(--tool-color, var(--yellow)); margin:0 0 1rem;}
+  .ctrl{ margin-bottom:1.2rem; }
+  .ctrl label{ display:flex; justify-content:space-between; font-family:var(--mono); font-size:.82rem; color:var(--paper-dim); margin-bottom:.35rem;}
+  .ctrl output{ color:var(--paper); }
+  input[type=range]{ width:100%; -webkit-appearance:none; height:3px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--tool-color, var(--green)); cursor:pointer; box-shadow:0 0 6px var(--tool-color, var(--green)); }
+  select{ width:100%; background:#0f0e0d; color:var(--paper); border:1px solid var(--line); padding:.5rem; font-family:var(--mono); border-radius:3px; }
+  button.reroll{
+    font-family:var(--mono); font-size:.78rem; background:#0f0e0d; color:var(--paper); border:1px solid var(--line);
+    padding:.55rem .9rem; border-radius:3px; cursor:pointer; width:100%;
+  }
+  button.reroll:hover{ border-color:var(--tool-color, var(--green)); }
+  .canvas-wrap{ background:#0f0e0d; border:1px solid var(--line); border-radius:3px; display:flex; align-items:center; justify-content:center; min-height:380px; }
+  .specs{ font-family:var(--mono); font-size:.78rem; color:var(--paper-dim); margin-top:1rem; display:grid; grid-template-columns:1fr 1fr; gap:.3rem 1rem;}
+  .specs b{ color:var(--paper); }
+
+  footer{ padding:4vh 6vw; text-align:center; color:var(--paper-dim); font-family:var(--mono); font-size:.8rem; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">MI-Werkstatt · Generative Werkzeuge</div>
+  <h1>FÜNF REGELN,<br>UNENDLICH <span>MUSTER</span></h1>
+  <p class="lead">Jedes Werkzeug hier ist eine kurze Regel, die der Computer viele Male wiederholt. Verändere die Parameter und beobachte, wie aus derselben Regel ganz unterschiedliche Formen entstehen.</p>
+</header>
+
+<nav class="tabs" id="tabs"></nav>
+
+<main id="main">
+
+  <!-- TOOL 1: Rekursiver Baum -->
+  <section class="tool-panel active" data-tool="baum" data-color="#7fbf7f" style="--tool-color:#7fbf7f">
+    <p class="intro">Jeder Ast erzeugt zwei kleinere Äste — eine Regel, die sich selbst aufruft. Das nennt man <b>Rekursion</b>.</p>
+    <div class="rule">äste(länge, winkel, tiefe): wenn tiefe = 0 → stopp; sonst zeichne, dann äste(länge·verhältnis, winkel±δ, tiefe−1) zweimal</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Verzweigungstiefe <output id="baum-ov-depth">9</output></label><input type="range" id="baum-depth" min="2" max="13" value="9"></div>
+        <div class="ctrl"><label>Winkel <output id="baum-ov-angle">25</output>°</label><input type="range" id="baum-angle" min="5" max="60" value="25"></div>
+        <div class="ctrl"><label>Längenverhältnis <output id="baum-ov-ratio">72</output>%</label><input type="range" id="baum-ratio" min="50" max="90" value="72"></div>
+        <div class="ctrl"><label>Zufall <output id="baum-ov-rand">10</output>%</label><input type="range" id="baum-rand" min="0" max="40" value="10"></div>
+        <div class="specs"><span>Äste total:</span><b id="baum-sp-branches">—</b></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="baum-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOOL 2: Rosette / Spirograph -->
+  <section class="tool-panel" data-tool="rosette" data-color="#5a86ad" style="--tool-color:#5a86ad">
+    <p class="intro">Ein Punkt läuft auf einem kleinen Kreis, der selbst auf einem grossen Kreis rollt. Seine Spur ist eine <b>Hypotrochoide</b> — reine Trigonometrie in Bewegung.</p>
+    <div class="rule">für θ von 0 bis n·2π: x = (R−r)·cos(θ) + d·cos(((R−r)/r)·θ)&nbsp;&nbsp;y = (R−r)·sin(θ) − d·sin(((R−r)/r)·θ)</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Innenradius r <output id="ros-ov-r">37</output></label><input type="range" id="ros-r" min="5" max="80" value="37"></div>
+        <div class="ctrl"><label>Stiftabstand d <output id="ros-ov-d">60</output></label><input type="range" id="ros-d" min="5" max="100" value="60"></div>
+        <div class="ctrl"><label>Umdrehungen <output id="ros-ov-rev">7</output></label><input type="range" id="ros-rev" min="1" max="30" value="7"></div>
+        <div class="ctrl"><label>Strichstärke <output id="ros-ov-w">1.2</output></label><input type="range" id="ros-w" min="1" max="30" value="12"></div>
+        <div class="specs"><span>Umlaufverhältnis R:r:</span><b id="ros-sp-ratio">—</b></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="ros-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOOL 3: Wellenfeld -->
+  <section class="tool-panel" data-tool="wellen" data-color="#5ec8c0" style="--tool-color:#5ec8c0">
+    <p class="intro">Jede Zeile ist eine Sinuswelle, die gegenüber der Zeile darüber leicht phasenverschoben ist. Zusammen ergeben viele einfache Wellen ein Muster wie Wasseroberfläche oder Wolkenschichten.</p>
+    <div class="rule">für zeile z, für x: y = z·abstand + amplitude·sin(frequenz·x + z·phasenversatz)</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Zeilen <output id="well-ov-rows">36</output></label><input type="range" id="well-rows" min="8" max="70" value="36"></div>
+        <div class="ctrl"><label>Amplitude <output id="well-ov-amp">14</output></label><input type="range" id="well-amp" min="2" max="40" value="14"></div>
+        <div class="ctrl"><label>Frequenz <output id="well-ov-freq">2.0</output></label><input type="range" id="well-freq" min="2" max="30" value="20"></div>
+        <div class="ctrl"><label>Phasenversatz/Zeile <output id="well-ov-phase">18</output>°</label><input type="range" id="well-phase" min="0" max="90" value="18"></div>
+        <div class="specs"><span>Wellenlinien:</span><b id="well-sp-lines">—</b></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="well-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOOL 4: Schneckenhaus -->
+  <section class="tool-panel" data-tool="schnecke" data-color="#e0a94f" style="--tool-color:#e0a94f">
+    <p class="intro">Eine logarithmische Spirale wächst bei jeder Umdrehung um denselben Faktor weiter — genau wie ein Schneckenhaus oder ein Nautilus. Trennwände markieren, wo je eine neue "Kammer" entsteht.</p>
+    <div class="rule">für θ von 0 bis n·2π: r(θ) = a · e^(b·θ)&nbsp;&nbsp;x = r·cos(θ), y = r·sin(θ)</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Wachstumsrate b <output id="schnk-ov-b">0.18</output></label><input type="range" id="schnk-b" min="5" max="35" value="18"></div>
+        <div class="ctrl"><label>Umdrehungen <output id="schnk-ov-rev">4</output></label><input type="range" id="schnk-rev" min="1" max="7" value="4"></div>
+        <div class="ctrl"><label>Kammern/Umdrehung <output id="schnk-ov-chambers">6</output></label><input type="range" id="schnk-chambers" min="0" max="14" value="6"></div>
+        <div class="specs"><span>Radius nach 1 Umdr.:</span><b id="schnk-sp-growth">—</b></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="schnk-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOOL 5: Wurmloch -->
+  <section class="tool-panel" data-tool="wurmloch" data-color="#8f7ff5" style="--tool-color:#8f7ff5">
+    <p class="intro">Viele Ringe schrumpfen zur Mitte hin und drehen sich dabei jeweils ein Stück weiter — dazu wackelt jeder Ring leicht. Das reicht, damit das Auge einen Tunnel sieht, der in die Tiefe führt.</p>
+    <div class="rule">für ring i von 0 bis n: radius(i) = R·(1 − i/n)^tiefe&nbsp;&nbsp;r(θ,i) = radius(i) + wackel·sin(k·θ + i·drehung)</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Ringe <output id="worm-ov-rings">28</output></label><input type="range" id="worm-rings" min="6" max="60" value="28"></div>
+        <div class="ctrl"><label>Rotation/Ring <output id="worm-ov-rot">9</output>°</label><input type="range" id="worm-rot" min="0" max="30" value="9"></div>
+        <div class="ctrl"><label>Wackel-Amplitude <output id="worm-ov-wobble">14</output></label><input type="range" id="worm-wobble" min="0" max="40" value="14"></div>
+        <div class="ctrl"><label>Tiefen-Exponent <output id="worm-ov-depth">2.2</output></label><input type="range" id="worm-depth" min="10" max="40" value="22"></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="worm-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOOL 6: Eisblume -->
+  <section class="tool-panel" data-tool="eisblume" data-color="#bfe3ff" style="--tool-color:#bfe3ff">
+    <p class="intro">Ein Ast bekommt nicht nur an der Spitze, sondern an mehreren Stellen entlang seiner Länge kleinere Seitenäste — wie echte Frost- oder Eiskristalle wachsen. Sechsfache Drehung ergibt die typische Kristallsymmetrie.</p>
+    <div class="rule">ast(x,y,winkel,länge,tiefe): zeichne länge; an 3 punkten entlang des astes: ast(punkt, winkel±δ, länge·verhältnis, tiefe−1); wiederhole 6× um 60° gedreht</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Verzweigungstiefe <output id="eis-ov-depth">4</output></label><input type="range" id="eis-depth" min="1" max="6" value="4"></div>
+        <div class="ctrl"><label>Astlänge <output id="eis-ov-len">55</output></label><input type="range" id="eis-len" min="20" max="90" value="55"></div>
+        <div class="ctrl"><label>Winkel <output id="eis-ov-angle">32</output>°</label><input type="range" id="eis-angle" min="10" max="60" value="32"></div>
+        <div class="ctrl"><label>Asymmetrie <output id="eis-ov-rand">8</output>%</label><input type="range" id="eis-rand" min="0" max="30" value="8"></div>
+      </div>
+      <div class="canvas-wrap"><canvas id="eis-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOOL 5: Partikel-Feld -->
+  <section class="tool-panel" data-tool="feld" data-color="#b98cd6" style="--tool-color:#b98cd6">
+    <p class="intro">Viele Punkte starten zufällig und folgen dann einer Regel, die von ihrer Position abhängt (ein "Strömungsfeld"). Zu viel Zufall wirkt chaotisch, zu wenig langweilig — die Regel bestimmt, wo dazwischen das Muster liegt.</p>
+    <div class="rule">für jeden punkt: richtung = sin(x·skala) + cos(y·skala) + zufall·rauschen; bewege punkt schrittweise in diese richtung</div>
+    <div class="demo">
+      <div>
+        <h3>Parameter</h3>
+        <div class="ctrl"><label>Anzahl Linien <output id="feld-ov-n">140</output></label><input type="range" id="feld-n" min="20" max="300" value="140"></div>
+        <div class="ctrl"><label>Feld-Skala <output id="feld-ov-scale">3.0</output></label><input type="range" id="feld-scale" min="1" max="10" value="30"></div>
+        <div class="ctrl"><label>Linienlänge <output id="feld-ov-len">50</output></label><input type="range" id="feld-len" min="10" max="120" value="50"></div>
+        <div class="ctrl"><label>Zufallsanteil <output id="feld-ov-rand">20</output>%</label><input type="range" id="feld-rand" min="0" max="100" value="20"></div>
+        <button class="reroll" id="feld-reroll">↻ Neu würfeln</button>
+      </div>
+      <div class="canvas-wrap"><canvas id="feld-cv" width="340" height="380"></canvas></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>MI-Werkstatt · Generative Werkzeug-Sammlung · fünf Regeln zum Weiterdenken für eigene Laser-/Druck-Motive</footer>
+
+<script>
+(function(){
+  // ---------- TAB SWITCHING ----------
+  const panels = document.querySelectorAll('.tool-panel');
+  const tabsWrap = document.getElementById('tabs');
+  const names = { baum:'Rekursiver Baum', rosette:'Rosette', wellen:'Wellenfeld', schnecke:'Schneckenhaus', wurmloch:'Wurmloch', eisblume:'Eisblume', feld:'Partikel-Feld' };
+  let i=1;
+  panels.forEach(p=>{
+    const key = p.dataset.tool;
+    const color = p.dataset.color;
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (p.classList.contains('active') ? ' active' : '');
+    tab.style.setProperty('--tool-color', color);
+    tab.innerHTML = '<span class="num">0'+i+'</span>'+names[key];
+    tab.addEventListener('click', ()=>{
+      panels.forEach(pp=>pp.classList.remove('active'));
+      tabsWrap.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      p.classList.add('active');
+      tab.classList.add('active');
+      renderAll(); // re-render in case canvas was hidden during init
+    });
+    tabsWrap.appendChild(tab);
+    i++;
+  });
+
+  // ================= TOOL 1: BAUM =================
+  const baumCv = document.getElementById('baum-cv'), baumCtx = baumCv.getContext('2d');
+  const baumDepth=document.getElementById('baum-depth'), baumAngle=document.getElementById('baum-angle'), baumRatio=document.getElementById('baum-ratio'), baumRand=document.getElementById('baum-rand');
+  const baumOvD=document.getElementById('baum-ov-depth'), baumOvA=document.getElementById('baum-ov-angle'), baumOvR=document.getElementById('baum-ov-ratio'), baumOvRnd=document.getElementById('baum-ov-rand');
+  let baumBranchCount=0;
+  function drawBranch(x,y,len,angle,depth,rand,angleInc,ratio){
+    if(depth===0 || len<2) return;
+    baumBranchCount++;
+    const rnd=(Math.random()-0.5)*2*rand*0.01;
+    const a=angle+rnd;
+    const x2=x+len*Math.cos(a), y2=y+len*Math.sin(a);
+    baumCtx.strokeStyle='#7fbf7f'; baumCtx.lineWidth=Math.max(1,depth*0.5);
+    baumCtx.beginPath(); baumCtx.moveTo(x,y); baumCtx.lineTo(x2,y2); baumCtx.stroke();
+    const newLen=len*ratio;
+    drawBranch(x2,y2,newLen,a-angleInc*(Math.PI/180),depth-1,rand,angleInc,ratio);
+    drawBranch(x2,y2,newLen,a+angleInc*(Math.PI/180),depth-1,rand,angleInc,ratio);
+  }
+  function renderBaum(){
+    const depth=parseInt(baumDepth.value), angle=parseInt(baumAngle.value), ratio=parseInt(baumRatio.value)/100, rand=parseInt(baumRand.value);
+    baumOvD.textContent=depth; baumOvA.textContent=angle; baumOvR.textContent=baumRatio.value; baumOvRnd.textContent=rand;
+    baumCtx.fillStyle='#0f0e0d'; baumCtx.fillRect(0,0,340,380);
+    baumBranchCount=0;
+    drawBranch(170,370,75,-Math.PI/2,depth,rand,angle,ratio);
+    document.getElementById('baum-sp-branches').textContent=baumBranchCount;
+  }
+  [baumDepth,baumAngle,baumRatio,baumRand].forEach(el=>el.addEventListener('input', renderBaum));
+
+  // ================= TOOL 2: ROSETTE =================
+  const rosCv=document.getElementById('ros-cv'), rosCtx=rosCv.getContext('2d');
+  const rosR=document.getElementById('ros-r'), rosD=document.getElementById('ros-d'), rosRev=document.getElementById('ros-rev'), rosW=document.getElementById('ros-w');
+  const rosOvR=document.getElementById('ros-ov-r'), rosOvD=document.getElementById('ros-ov-d'), rosOvRev=document.getElementById('ros-ov-rev'), rosOvW=document.getElementById('ros-ov-w');
+  function renderRosette(){
+    const R=130, r=parseInt(rosR.value), d=parseInt(rosD.value), rev=parseInt(rosRev.value), w=parseInt(rosW.value)/10;
+    rosOvR.textContent=r; rosOvD.textContent=d; rosOvRev.textContent=rev; rosOvW.textContent=w.toFixed(1);
+    rosCtx.fillStyle='#0f0e0d'; rosCtx.fillRect(0,0,340,380);
+    const cx=170, cy=190;
+    rosCtx.strokeStyle='#5a86ad'; rosCtx.lineWidth=w; rosCtx.beginPath();
+    const steps = rev*240;
+    for(let i=0;i<=steps;i++){
+      const theta = i/steps * rev * 2*Math.PI;
+      const k=(R-r)/r;
+      const x = cx + (R-r)*Math.cos(theta) + d*Math.cos(k*theta);
+      const y = cy + (R-r)*Math.sin(theta) - d*Math.sin(k*theta);
+      if(i===0) rosCtx.moveTo(x,y); else rosCtx.lineTo(x,y);
+    }
+    rosCtx.stroke();
+    const g = gcd(R,r);
+    document.getElementById('ros-sp-ratio').textContent = (R/g)+' : '+(r/g);
+  }
+  function gcd(a,b){ a=Math.round(a); b=Math.round(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+  [rosR,rosD,rosRev,rosW].forEach(el=>el.addEventListener('input', renderRosette));
+
+  // ================= TOOL 3: WELLENFELD =================
+  const wellCv=document.getElementById('well-cv'), wellCtx=wellCv.getContext('2d');
+  const wellRows=document.getElementById('well-rows'), wellAmp=document.getElementById('well-amp'), wellFreq=document.getElementById('well-freq'), wellPhase=document.getElementById('well-phase');
+  function renderWellen(){
+    const rows=parseInt(wellRows.value), amp=parseInt(wellAmp.value), freq=parseInt(wellFreq.value)/10, phase=parseInt(wellPhase.value);
+    document.getElementById('well-ov-rows').textContent=rows;
+    document.getElementById('well-ov-amp').textContent=amp;
+    document.getElementById('well-ov-freq').textContent=freq.toFixed(1);
+    document.getElementById('well-ov-phase').textContent=phase;
+    wellCtx.fillStyle='#0f0e0d'; wellCtx.fillRect(0,0,340,380);
+    wellCtx.strokeStyle='#5ec8c0'; wellCtx.lineWidth=1.3;
+    const spacing = 380/(rows+1);
+    for(let z=0; z<rows; z++){
+      const y0 = (z+1)*spacing;
+      const ph = z*phase*Math.PI/180;
+      wellCtx.beginPath();
+      for(let x=0; x<=340; x+=3){
+        const y = y0 + amp*Math.sin(freq*0.05*x + ph);
+        if(x===0) wellCtx.moveTo(x,y); else wellCtx.lineTo(x,y);
+      }
+      wellCtx.globalAlpha = 0.85;
+      wellCtx.stroke();
+    }
+    wellCtx.globalAlpha = 1;
+    document.getElementById('well-sp-lines').textContent = rows;
+  }
+  [wellRows,wellAmp,wellFreq,wellPhase].forEach(el=>el.addEventListener('input', renderWellen));
+
+  // ================= TOOL 4: SCHNECKENHAUS =================
+  const schnkCv=document.getElementById('schnk-cv'), schnkCtx=schnkCv.getContext('2d');
+  const schnkB=document.getElementById('schnk-b'), schnkRev=document.getElementById('schnk-rev'), schnkChambers=document.getElementById('schnk-chambers');
+  function renderSchnecke(){
+    const b=parseInt(schnkB.value)/100, rev=parseInt(schnkRev.value), chambersPerRev=parseInt(schnkChambers.value);
+    document.getElementById('schnk-ov-b').textContent=b.toFixed(2);
+    document.getElementById('schnk-ov-rev').textContent=rev;
+    document.getElementById('schnk-ov-chambers').textContent=chambersPerRev;
+    schnkCtx.fillStyle='#0f0e0d'; schnkCtx.fillRect(0,0,340,380);
+    const cx=170, cy=200;
+    const a = 4;
+    const maxTheta = rev*2*Math.PI;
+    // scale so the spiral fits nicely
+    const rawMax = a*Math.exp(b*maxTheta);
+    const scale = 150/rawMax;
+    schnkCtx.strokeStyle='#e0a94f'; schnkCtx.lineWidth=1.6;
+    schnkCtx.beginPath();
+    const steps = rev*200;
+    for(let i=0;i<=steps;i++){
+      const theta = i/steps * maxTheta;
+      const r = a*Math.exp(b*theta)*scale;
+      const x = cx + r*Math.cos(theta);
+      const y = cy + r*Math.sin(theta);
+      if(i===0) schnkCtx.moveTo(x,y); else schnkCtx.lineTo(x,y);
+    }
+    schnkCtx.stroke();
+    // chamber divider lines
+    if(chambersPerRev>0){
+      const totalChambers = rev*chambersPerRev;
+      schnkCtx.strokeStyle='rgba(224,169,79,0.4)'; schnkCtx.lineWidth=1;
+      for(let k=1;k<=totalChambers;k++){
+        const theta = k*(maxTheta/totalChambers);
+        const r = a*Math.exp(b*theta)*scale;
+        const x = cx + r*Math.cos(theta), y = cy + r*Math.sin(theta);
+        schnkCtx.beginPath(); schnkCtx.moveTo(cx,cy); schnkCtx.lineTo(x,y); schnkCtx.stroke();
+      }
+    }
+    document.getElementById('schnk-sp-growth').textContent = Math.exp(b*2*Math.PI).toFixed(2) + '×';
+  }
+  [schnkB,schnkRev,schnkChambers].forEach(el=>el.addEventListener('input', renderSchnecke));
+
+  // ================= TOOL 5: WURMLOCH =================
+  const wormCv=document.getElementById('worm-cv'), wormCtx=wormCv.getContext('2d');
+  const wormRings=document.getElementById('worm-rings'), wormRot=document.getElementById('worm-rot'), wormWobble=document.getElementById('worm-wobble'), wormDepth=document.getElementById('worm-depth');
+  function renderWurmloch(){
+    const rings=parseInt(wormRings.value), rotStep=parseInt(wormRot.value)*Math.PI/180, wobble=parseInt(wormWobble.value), depthExp=parseInt(wormDepth.value)/10;
+    document.getElementById('worm-ov-rings').textContent=rings;
+    document.getElementById('worm-ov-rot').textContent=wormRot.value;
+    document.getElementById('worm-ov-wobble').textContent=wobble;
+    document.getElementById('worm-ov-depth').textContent=depthExp.toFixed(1);
+    wormCtx.fillStyle='#0f0e0d'; wormCtx.fillRect(0,0,340,380);
+    const cx=170, cy=190, R=170;
+    for(let i=rings; i>=0; i--){
+      const t = i/rings;
+      const radius = R*Math.pow(1-t, depthExp) + 4;
+      const rot = i*rotStep;
+      const shade = 40 + (1-t)*180;
+      wormCtx.strokeStyle = `rgb(${shade*0.55+30},${shade*0.45+20},${shade+30})`;
+      wormCtx.lineWidth = 1.4;
+      wormCtx.beginPath();
+      const ptsN = 90;
+      for(let p=0;p<=ptsN;p++){
+        const theta = p/ptsN * 2*Math.PI;
+        const r = radius + wobble*Math.sin(5*theta + rot)*t;
+        const x = cx + r*Math.cos(theta+rot);
+        const y = cy + r*Math.sin(theta+rot)*0.92;
+        if(p===0) wormCtx.moveTo(x,y); else wormCtx.lineTo(x,y);
+      }
+      wormCtx.closePath();
+      wormCtx.stroke();
+    }
+  }
+  [wormRings,wormRot,wormWobble,wormDepth].forEach(el=>el.addEventListener('input', renderWurmloch));
+
+  // ================= TOOL 6: EISBLUME =================
+  const eisCv=document.getElementById('eis-cv'), eisCtx=eisCv.getContext('2d');
+  const eisDepth=document.getElementById('eis-depth'), eisLen=document.getElementById('eis-len'), eisAngle=document.getElementById('eis-angle'), eisRand=document.getElementById('eis-rand');
+  function eisAst(x,y,angle,len,depth,angleDeg,ratio,rand){
+    if(depth===0 || len<3) return;
+    const rnd=(Math.random()-0.5)*2*rand*0.01;
+    const a=angle+rnd;
+    const x2=x+len*Math.cos(a), y2=y+len*Math.sin(a);
+    eisCtx.lineWidth=Math.max(0.6, depth*0.45);
+    eisCtx.beginPath(); eisCtx.moveTo(x,y); eisCtx.lineTo(x2,y2); eisCtx.stroke();
+    // side branches at 3 points along the branch
+    const branchPoints=[0.45,0.7,0.92];
+    branchPoints.forEach(f=>{
+      if(f>=1) return;
+      const bx=x+(x2-x)*f, by=y+(y2-y)*f;
+      eisAst(bx,by, a-angleDeg*Math.PI/180, len*ratio*0.62, depth-1, angleDeg, ratio, rand);
+      eisAst(bx,by, a+angleDeg*Math.PI/180, len*ratio*0.62, depth-1, angleDeg, ratio, rand);
+    });
+    eisAst(x2,y2, a, len*ratio, depth-1, angleDeg, ratio, rand);
+  }
+  function renderEisblume(){
+    const depth=parseInt(eisDepth.value), len=parseInt(eisLen.value), angleDeg=parseInt(eisAngle.value), rand=parseInt(eisRand.value), ratio=0.62;
+    document.getElementById('eis-ov-depth').textContent=depth;
+    document.getElementById('eis-ov-len').textContent=len;
+    document.getElementById('eis-ov-angle').textContent=angleDeg;
+    document.getElementById('eis-ov-rand').textContent=rand;
+    eisCtx.fillStyle='#0f0e0d'; eisCtx.fillRect(0,0,340,380);
+    eisCtx.strokeStyle='#bfe3ff';
+    const cx=170, cy=195;
+    for(let arm=0; arm<6; arm++){
+      const baseAngle = arm*(Math.PI/3) - Math.PI/2;
+      eisAst(cx,cy, baseAngle, len, depth, angleDeg, ratio, rand);
+    }
+  }
+  [eisDepth,eisLen,eisAngle,eisRand].forEach(el=>el.addEventListener('input', renderEisblume));
+
+  // ================= TOOL 5: PARTIKEL-FELD =================
+  const feldCv=document.getElementById('feld-cv'), feldCtx=feldCv.getContext('2d');
+  const feldN=document.getElementById('feld-n'), feldScale=document.getElementById('feld-scale'), feldLen=document.getElementById('feld-len'), feldRand=document.getElementById('feld-rand');
+  const feldOvN=document.getElementById('feld-ov-n'), feldOvScale=document.getElementById('feld-ov-scale'), feldOvLen=document.getElementById('feld-ov-len'), feldOvRand=document.getElementById('feld-ov-rand');
+  let feldSeed=[];
+  function reseedFeld(){
+    const n=parseInt(feldN.value);
+    feldSeed = Array.from({length:n}, ()=>({x:Math.random()*340, y:Math.random()*380}));
+  }
+  function renderFeld(){
+    const n=parseInt(feldN.value), scale=parseInt(feldScale.value)/10, len=parseInt(feldLen.value), rand=parseInt(feldRand.value)/100;
+    feldOvN.textContent=n; feldOvScale.textContent=scale.toFixed(1); feldOvLen.textContent=len; feldOvRand.textContent=feldRand.value;
+    if(feldSeed.length !== n) reseedFeld();
+    feldCtx.fillStyle='#0f0e0d'; feldCtx.fillRect(0,0,340,380);
+    feldCtx.strokeStyle='#b98cd6'; feldCtx.lineWidth=1;
+    feldSeed.forEach(pt=>{
+      let x=pt.x, y=pt.y;
+      feldCtx.beginPath(); feldCtx.moveTo(x,y);
+      for(let s=0;s<len;s++){
+        let dir = Math.sin(x*0.02*scale) + Math.cos(y*0.02*scale);
+        dir += (Math.random()-0.5)*2*rand*Math.PI;
+        x += Math.cos(dir)*2;
+        y += Math.sin(dir)*2;
+        feldCtx.lineTo(x,y);
+      }
+      feldCtx.globalAlpha = 0.55;
+      feldCtx.stroke();
+      feldCtx.globalAlpha = 1;
+    });
+  }
+  [feldN,feldScale,feldLen,feldRand].forEach(el=>el.addEventListener('input', ()=>{
+    if(el===feldN) reseedFeld();
+    renderFeld();
+  }));
+  document.getElementById('feld-reroll').addEventListener('click', ()=>{ reseedFeld(); renderFeld(); });
+
+  // ---------- INIT ALL ----------
+  function renderAll(){
+    renderBaum(); renderRosette(); renderWellen(); renderSchnecke(); renderWurmloch(); renderEisblume();
+    if(feldSeed.length===0) reseedFeld();
+    renderFeld();
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>
