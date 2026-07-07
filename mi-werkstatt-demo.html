@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+  <html lang="de">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MI-Werkstatt · Demo</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+            font-family: "Karla", "Segoe UI", sans-serif;
+      background: #f7f5f0;
+            color: #1a1d1a;
+      line-height: 1.5;
+}
+
+    .topbar {
+            display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 30px;
+      background: #1a1d1a;
+      color: #f7f5f0;
+      }
+
+    .brand h1 {
+            font-size: 24px;
+      font-weight: 700;
+}
+
+    .badge {
+            font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #c65d2e;
+            background: rgba(198, 93, 46, 0.2);
+      padding: 4px 10px;
+      border-radius: 4px;
+}
+
+    .container {
+            max-width: 980px;
+      margin: 0 auto;
+      padding: 40px 20px;
+}
+
+    h2 {
+            font-size: 32px;
+      margin-bottom: 10px;
+      font-family: "Fredoka", sans-serif;
+}
+
+    .subtitle {
+            font-size: 16px;
+      color: #6b6b63;
+      margin-bottom: 40px;
+}
+
+          .grid {
+              display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+}
+
+            .card {
+      background: #ffffff;
+            border: 1px solid #dedad0;
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+}
+
+    .card:hover {
+              border-color: #c65d2e;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+}
+
+    .card-type {
+      font-family: "IBM Plex Mono", monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+                  letter-spacing: 0.1em;
+      color: #6b6b63;
+      }
+
+    .card h3 {
+      font-size: 18px;
+      font-family: "Fredoka", sans-serif;
+      margin: 0;
+                    }
+
+    .card p {
+      font-size: 14px;
+              color: #6b6b63;
+      margin: 0;
+      flex: 1;
+      }
+
+            .card-link {
+            font-size: 13px;
+      color: #c65d2e;
+      font-weight: 600;
+      text-decoration: none;
+            display: inline-block;
+      margin-top: 8px;
+}
+
+            .card-link:hover {
+      text-decoration: underline;
+}
+
+            .info-box {
+            background: #f0dccb;
+      border-left: 4px solid #c65d2e;
+              padding: 16px 20px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+}
+
+    .info-box h4 {
+      color: #c65d2e;
+      margin-bottom: 8px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+}
+
+    .info-box p {
+      font-size: 14px;
+      color: #5a3d2a;
+      }
+
+          footer {
+      text-align: center;
+      padding: 30px 20px;
+      color: #6b6b63;
+      font-size: 12px;
+      border-top: 1px solid #dedad0;
+      margin-top: 40px;
+}
+          </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <h1>MI-Werkstatt <span class="badge">Demo</span></h1>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Willkommen zur MI-Werkstatt!</h2>
+    <p class="subtitle">Entdecke deine Herausforderungen und erweitere deine Fähigkeiten</p>
+
+    <div class="info-box">
+      <h4>🚀 Demo-Version</h4>
+      <p>Dies ist die Demo-Version der MI-Werkstatt. Hier kannst du alle Challenges frei erkunden und ausprobieren!</p>
+    </div>
+
+    <h2 style="font-size: 20px; margin-top: 40px; margin-bottom: 20px;">📚 Deine Challenges</h2>
+
+    <div class="grid">
+            <!-- Challenge 1: Excel Skills -->
+            <a href="excel-skills.html" class="card">
+        <div class="card-type">🧮 Challenge</div>
+              <h3>Excel-Skills</h3>
+        <p>Lerne die Grundlagen und fortgeschrittenen Funktionen von Microsoft Excel. Meistere Formeln, Diagramme und Datenanalyse.</p>
+                    <span class="card-link">→ Zur Challenge</span>
+                  </a>
+
+      <!-- Challenge 2: Uniflow Drucken -->
+      <a href="uniflow-drucken.html" class="card">
+                    <div class="card-type">🖨️ Challenge</div>
+                    <h3>Drucken mit Uniflow</h3>
+        <p>Entdecke die Welt des professionellen Drucks mit Uniflow. Lerne Output-Management und Druckverwaltung.</p>
+        <span class="card-link">→ Zur Challenge</span>
+      </a>
+
+      <!-- Weiterer Challenge Placeholder -->
+      <div class="card" style="opacity: 0.6; cursor: default;">
+        <div class="card-type">🔜 Bald verfügbar</div>
+        <h3>Weitere Challenges</h3>
+                    <p>Wir arbeiten an spannenden neuen Herausforderungen für dich. Schaue bald wieder vorbei!</p>
+        <span class="card-link" style="color: #6b6b63;">Kommt bald...</span>
+                  </div>
+    </div>
+
+                <div class="info-box" style="background: #dcece2; border-left-color: #3f7a5c; margin-top: 40px;">
+                  <h4 style="color: #3f7a5c;">✅ Tipps zum Lernen</h4>
+      <p>Arbeite dich durch die Challenges in deinem eigenen Tempo. Jede Challenge ist unabhängig und kann jederzeit gestartet werden. Viel Spaß beim Lernen!</p>
+                </div>
+              </div>
+
+              <footer>
+                <p>© 2025 MI-Werkstatt · OSZ Mett-Bözingen · <a href="mi-werkstatt.html" style="color: #c65d2e; text-decoration: none;">Zur vollständigen Version</a></p>
+  </footer>
+</body>
+</html>
