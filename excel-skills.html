@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel-Skills · OSZ Mett-Bözingen</title>
+<style>
+  :root{
+    --ink:#1a1d1a; --paper:#f7f5f0; --panel:#ffffff; --line:#dedad0;
+    --accent:#1f7a4d; --accent-soft:#d9ede1; --warn:#c65d2e; --warn-soft:#f0dccb;
+    --bad:#b33; --bad-soft:#f6dede;
+    --mono:"IBM Plex Mono","Courier New",monospace;
+    --sans:"Fredoka","Segoe UI",system-ui,sans-serif;
+    --body:"Karla","Segoe UI",system-ui,sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap');
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); line-height:1.5;}
+  h1,h2,h3{font-family:var(--sans); margin:0; letter-spacing:-0.01em;}
+  #progress{position:fixed; top:0; left:0; height:4px; background:var(--accent); width:0%; z-index:100; transition:width .1s;}
+  #score{
+    position:fixed; top:14px; right:16px; z-index:100; background:var(--ink); color:var(--paper);
+    font-family:var(--sans); font-weight:700; font-size:14px; padding:8px 16px; border-radius:20px;
+    display:flex; align-items:center; gap:6px; transition:transform .2s;
+  }
+  #score.bump{transform:scale(1.15);}
+
+  .hero{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 20px;
+    background: radial-gradient(circle at 20% 20%, rgba(31,122,77,0.12), transparent 50%), radial-gradient(circle at 80% 80%, rgba(198,93,46,0.10), transparent 50%), var(--paper);}
+  .hero .mark{font-family:var(--mono); font-size:12px; letter-spacing:0.14em; color:var(--accent); text-transform:uppercase; margin-bottom:10px;}
+  .hero h1{font-size:46px; margin-bottom:10px;}
+  .hero p{font-size:17px; color:#555; max-width:440px; margin:0 auto 26px;}
+  .scroll-hint{font-family:var(--mono); font-size:12px; color:#888; animation:bounce 2s infinite;}
+  @keyframes bounce{0%,100%{transform:translateY(0);} 50%{transform:translateY(8px);}}
+  .grid-icon{display:grid; grid-template-columns:repeat(4,24px); grid-template-rows:repeat(3,24px); gap:3px; margin-bottom:22px;}
+  .grid-icon div{background:var(--panel); border:1.5px solid var(--accent); border-radius:3px;}
+  .grid-icon div:nth-child(4n+1){background:var(--accent-soft);}
+
+  section.step{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:50px 20px;}
+  .step-inner{max-width:640px; width:100%; opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease;}
+  .step-inner.visible{opacity:1; transform:translateY(0);}
+  .step-inner.wide{max-width:820px;}
+  .step-num{font-family:var(--mono); font-size:13px; color:var(--accent); text-transform:uppercase; letter-spacing:0.1em; display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .step-num .dot{width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:var(--sans); font-size:14px;}
+  .step h2{font-size:26px; margin-bottom:10px;}
+  .step p.lead{font-size:15px; color:#555; margin-bottom:16px;}
+  .progress-label{font-family:var(--mono); font-size:11px; color:#999; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px;}
+
+  #sidedots{position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:10px; z-index:90;}
+  #sidedots .d{width:9px; height:9px; border-radius:50%; background:var(--line); transition:background .3s, transform .3s;}
+  #sidedots .d.active{background:var(--accent); transform:scale(1.4);}
+  @media (max-width:700px){#sidedots{display:none;}}
+
+  .game-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; text-align:center;}
+  .feedback{font-family:var(--sans); font-weight:700; font-size:14px; margin-top:10px; min-height:20px;}
+  .feedback.ok{color:var(--accent);}
+  .feedback.bad{color:var(--bad);}
+  .done-banner{font-family:var(--sans); font-weight:700; font-size:17px; color:var(--accent); text-align:center; padding:20px;}
+
+  .minigrid{display:inline-grid; grid-template-columns:repeat(5, 46px); gap:4px; margin:14px auto;}
+  .minigrid .mc{width:46px; height:36px; background:var(--panel); border:1.5px solid var(--line); border-radius:6px; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:12px; cursor:pointer; color:#aaa; transition:all .15s;}
+  .minigrid .mc.head{background:var(--ink); color:var(--paper); cursor:default; font-weight:700;}
+  .minigrid .mc:hover:not(.head){border-color:var(--accent);}
+  .minigrid .mc.correct{background:var(--accent-soft); border-color:var(--accent); color:var(--ink);}
+  .minigrid .mc.wrong{background:var(--bad-soft); border-color:var(--bad);}
+
+  .fillbox{display:flex; align-items:center; justify-content:center; gap:8px; font-family:var(--mono); font-size:20px; margin:10px 0; flex-wrap:wrap;}
+  .fillbox input{width:74px; padding:8px; text-align:center; border:2px solid var(--line); border-radius:8px; font-family:var(--mono); font-size:18px;}
+  .fillbox input.ok{border-color:var(--accent); background:var(--accent-soft);}
+  .fillbox input.bad{border-color:var(--bad); background:var(--bad-soft);}
+
+  .match-wrap{display:flex; gap:24px; justify-content:center; flex-wrap:wrap; margin-top:14px;}
+  .match-col{display:flex; flex-direction:column; gap:8px;}
+  .match-item{padding:10px 16px; border:2px solid var(--line); border-radius:8px; background:var(--panel); font-size:14px; cursor:pointer; font-family:var(--mono); transition:all .15s;}
+  .match-item.sel{border-color:var(--accent); background:var(--accent-soft);}
+  .match-item.done{border-color:var(--accent); background:var(--accent-soft); opacity:0.6; cursor:default;}
+  .match-item.desc{font-family:var(--body);}
+  .match-item.wrong{border-color:var(--bad); background:var(--bad-soft);}
+
+  .sheet-wrap{overflow-x:auto; margin-top:12px; border:1px solid var(--line); border-radius:10px;}
+  table.sheet{border-collapse:collapse; font-size:13px; background:var(--panel); min-width:100%;}
+  table.sheet th{background:var(--ink); color:var(--paper); font-family:var(--mono); font-weight:500; padding:6px 4px; min-width:64px;}
+  table.sheet td.rowhead{background:var(--ink); color:var(--paper); font-family:var(--mono); text-align:center; padding:6px 4px; width:28px;}
+  table.sheet td.cell{border:1px solid var(--line); padding:0; height:30px;}
+  table.sheet td.cell input{width:100%; height:30px; border:none; padding:4px 6px; font-size:13px; font-family:var(--body); background:transparent; outline:none;}
+  table.sheet td.cell input:focus{background:var(--accent-soft);}
+  table.sheet td.cell.err input{color:#b33;}
+
+  .tasks{margin-top:14px;}
+  .task{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin-bottom:8px; display:flex; align-items:center; gap:10px; font-size:13px;}
+  .task.current{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft);}
+  .task .check{width:20px; height:20px; border-radius:50%; border:2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:transparent; transition:all .2s;}
+  .task.done .check{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .task.done span.txt{color:#888; text-decoration:line-through;}
+
+  .fillrow{display:flex; gap:0; margin:16px 0; justify-content:center;}
+  .fillcell{width:82px; height:46px; border:1px solid var(--line); background:var(--panel); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:12px;}
+  .fillcell.origin{background:var(--accent-soft); font-weight:700;}
+  .fillcell.filled{animation:fillin .5s ease forwards;}
+  @keyframes fillin{from{background:var(--accent-soft); opacity:0.3;} to{background:var(--panel); opacity:1;}}
+
+  .sortdemo{width:100%; border-collapse:collapse; margin-top:10px; font-size:13px;}
+  .sortdemo th{background:var(--ink); color:var(--paper); padding:7px 10px; cursor:pointer; font-family:var(--sans); font-size:12px;}
+  .sortdemo td{padding:7px 10px; border-bottom:1px solid var(--line);}
+
+  .chart-choice{display:flex; gap:12px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+  .chart-opt{background:var(--panel); border:2px solid var(--line); border-radius:10px; padding:14px; text-align:center; cursor:pointer; font-size:13px; font-weight:600; width:110px;}
+  .chart-opt:hover{border-color:var(--accent);}
+  .chart-opt.correct{border-color:var(--accent); background:var(--accent-soft);}
+  .chart-opt.wrong{border-color:var(--bad); background:var(--bad-soft);}
+  .chart-opt .ico{font-size:28px; display:block; margin-bottom:6px;}
+
+  .btn-primary{background:var(--ink); color:var(--paper); border:none; padding:13px 26px; border-radius:8px; font-size:16px; font-weight:600; font-family:var(--sans); cursor:pointer; margin-top:16px;}
+  .btn-primary:hover{background:#000;}
+  .btn-secondary{background:none; border:1px solid var(--line); color:var(--ink); padding:8px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; font-family:var(--sans);}
+
+  .final{min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 20px;}
+
+  .fp-part{padding:4px 8px; border-radius:6px; cursor:pointer; transition:all .15s; border:2px solid transparent;}
+  .fp-part:hover{background:var(--accent-soft);}
+  .fp-part.active{background:var(--accent); color:#fff;}
+  .fp-part.visited:not(.active){border-color:var(--accent-soft);}
+  .fp-part.eq{color:var(--warn); font-weight:700;}
+  .fp-part.ref{color:var(--accent); font-weight:700;}
+  .fp-part.op{color:#888;}
+  .fp-part.fn{color:#5566cc; font-weight:700;}
+  .fp-part.paren{color:#c65d2e; font-weight:700;}
+
+  .ribbon-card{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:6px 6px 20px; text-align:center;}
+  .ribbon-tabs{display:flex; justify-content:center; flex-wrap:wrap; gap:2px; border-bottom:2px solid var(--line); margin-bottom:16px;}
+  .ribbon-tab{padding:10px 16px; background:none; border:none; font-family:var(--sans); font-weight:600; font-size:14px; color:#888; cursor:pointer; border-bottom:3px solid transparent;}
+  .ribbon-tab.active{color:var(--ink); border-bottom-color:var(--accent);}
+  .ribbon-buttons{display:flex; justify-content:center; flex-wrap:wrap; gap:10px; padding:0 14px;}
+  .ribbon-btn{background:var(--paper); border:1.5px solid var(--line); border-radius:8px; padding:10px 12px; cursor:pointer; font-size:11px; font-weight:600; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:74px; transition:all .15s;}
+  .ribbon-btn:hover{border-color:var(--accent);}
+  .ribbon-btn.active{border-color:var(--accent); background:var(--accent-soft);}
+  .ribbon-btn .ico{font-size:20px;}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="sidedots"></div>
+<div id="score">⭐ <span id="scoreNum">0</span></div>
+
+<section class="hero">
+  <div class="grid-icon"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+  <div class="mark">OSZ Mett-Bözingen · MI</div>
+  <h1>Excel-Skills</h1>
+  <p>Klick, tipp, probier aus — sammle Sterne, während du Excel lernst.</p>
+  <div class="scroll-hint">↓ Los geht's</div>
+</section>
+
+<section class="step" data-step="1">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">1</span> Zellen finden</div>
+    <div class="progress-label" id="gridProgress"></div>
+    <div class="game-card" id="gridGame"></div>
+  </div>
+</section>
+
+<section class="step" data-step="2">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">2</span> Formel-Bausteine</div>
+    <div class="progress-label" id="fpProgress"></div>
+    <div class="game-card" id="fpGame"></div>
+  </div>
+</section>
+
+<section class="step" data-step="3">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">3</span> Formeln üben</div>
+    <div class="progress-label" id="formulaProgress"></div>
+    <div class="game-card" id="formulaGame"></div>
+  </div>
+</section>
+
+<section class="step" data-step="4">
+  <div class="step-inner wide">
+    <div class="step-num"><span class="dot">4</span> Funktionen</div>
+    <h2>Ordne Funktion und Bedeutung zu</h2>
+    <div class="match-wrap">
+      <div class="match-col" id="matchFn"></div>
+      <div class="match-col" id="matchDesc"></div>
+    </div>
+    <div class="feedback" id="match-feedback" style="text-align:center;"></div>
+  </div>
+</section>
+
+<section class="step" data-step="5">
+  <div class="step-inner wide">
+    <div class="step-num"><span class="dot">5</span> Menüband</div>
+    <h2>Wo finde ich was?</h2>
+    <p class="lead">Klick auf einen Reiter, dann auf ein Werkzeug — du bekommst sofort eine Erklärung.</p>
+    <div class="progress-label" id="ribbonProgress"></div>
+    <div class="ribbon-card">
+      <div class="ribbon-tabs" id="ribbonTabs"></div>
+      <div class="ribbon-buttons" id="ribbonButtons"></div>
+      <div class="feedback" id="ribbon-explain" style="min-height:36px;"></div>
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="6">
+  <div class="step-inner wide">
+    <div class="step-num"><span class="dot">✎</span> Übungsblatt</div>
+    <h2>Jetzt richtig ausprobieren</h2>
+    <p class="lead">Tipp Formeln direkt in die Zellen (mit <code style="font-family:var(--mono);">=</code>), Enter bestätigt. Eine Aufgabe nach der anderen.</p>
+    <div class="sheet-wrap"><table class="sheet" id="sheet"></table></div>
+    <div class="tasks" id="tasks"></div>
+  </div>
+</section>
+
+<section class="step" data-step="7">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">7</span> Autofill</div>
+    <div class="progress-label" id="fillProgress"></div>
+    <div class="game-card" id="fillGame"></div>
+  </div>
+</section>
+
+<section class="step" data-step="8">
+  <div class="step-inner wide">
+    <div class="step-num"><span class="dot">8</span> Sortieren</div>
+    <div class="progress-label" id="sortProgress"></div>
+    <p class="lead" id="sortInstruction"></p>
+    <table class="sortdemo" id="sortdemo">
+      <thead><tr><th data-col="name">Name ⇅</th><th data-col="punkte">Punkte ⇅</th><th data-col="klasse">Klasse ⇅</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="feedback" id="sort-feedback"></div>
+  </div>
+</section>
+
+<section class="step" data-step="9">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">9</span> Diagramme</div>
+    <div class="progress-label" id="chartProgress"></div>
+    <div class="game-card" id="chartGame"></div>
+  </div>
+</section>
+
+<section class="final">
+  <h2 style="font-size:28px; margin-bottom:8px;">Super gemacht! 🎉</h2>
+  <p style="color:#555; max-width:400px;">Du hast <strong id="finalScore">0</strong> Sterne gesammelt. Kehre zur Werkstatt zurück, um abzuschliessen.</p>
+  <button class="btn-primary" onclick="history.back();">← Zurück zur Werkstatt</button>
+</section>
+
+<script>
+let score = 0;
+function addScore(n){
+  score += n;
+  document.getElementById('scoreNum').textContent = score;
+  document.getElementById('finalScore').textContent = score;
+  const badge = document.getElementById('score');
+  badge.classList.add('bump');
+  setTimeout(()=>badge.classList.remove('bump'), 200);
+}
+
+function runQueue(containerId, progressId, items, renderItem, doneMsg){
+  const container = document.getElementById(containerId);
+  const progressEl = progressId ? document.getElementById(progressId) : null;
+  let idx = 0;
+  function showNext(){
+    if(idx >= items.length){
+      container.innerHTML = '<div class="done-banner">🎉 ' + (doneMsg || 'Alle Aufgaben geschafft!') + '</div>';
+      if(progressEl) progressEl.textContent = '';
+      return;
+    }
+    if(progressEl) progressEl.textContent = 'Aufgabe ' + (idx+1) + ' von ' + items.length;
+    container.innerHTML = '';
+    renderItem(items[idx], idx, items.length, container, () => {
+      addScore(1);
+      idx++;
+      setTimeout(showNext, 650);
+    });
+  }
+  showNext();
+}
+
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  document.getElementById('progress').style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + '%';
+});
+const steps = document.querySelectorAll('section.step, section.final');
+const dotsContainer = document.getElementById('sidedots');
+steps.forEach(() => dotsContainer.appendChild(Object.assign(document.createElement('div'), {className:'d'})));
+const allDots = dotsContainer.querySelectorAll('.d');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const inner = entry.target.querySelector('.step-inner');
+    if(entry.isIntersecting){
+      if(inner) inner.classList.add('visible');
+      const idx = Array.from(steps).indexOf(entry.target);
+      allDots.forEach((d,i) => d.classList.toggle('active', i === idx));
+    }
+  });
+}, { threshold: 0.35 });
+steps.forEach(s => observer.observe(s));
+
+const gCols = ['A','B','C','D'], gRows=[1,2,3];
+const gridTargets = ['C2','A3','D1','B2'];
+runQueue('gridGame', 'gridProgress', gridTargets, (target, idx, total, container, onDone) => {
+  container.innerHTML = '<h2 style="font-size:22px; margin-bottom:10px;">Klicke auf Zelle <span style="color:var(--accent);">' + target + '</span></h2>' +
+    '<div class="minigrid" id="minigrid"></div>' +
+    '<div class="feedback" id="grid-feedback"></div>';
+  const gridEl = document.getElementById('minigrid');
+  gridEl.innerHTML = '<div class="mc head"></div>' + gCols.map(c=>'<div class="mc head">'+c+'</div>').join('');
+  gRows.forEach(r => {
+    gridEl.innerHTML += '<div class="mc head">' + r + '</div>';
+    gCols.forEach(c => { gridEl.innerHTML += '<div class="mc" data-ref="' + c + r + '"></div>'; });
+  });
+  let solved = false;
+  gridEl.querySelectorAll('.mc:not(.head)').forEach(cell => {
+    cell.onclick = () => {
+      if(solved) return;
+      if(cell.dataset.ref === target){
+        cell.classList.add('correct');
+        document.getElementById('grid-feedback').textContent = '✓ Richtig!';
+        document.getElementById('grid-feedback').className = 'feedback ok';
+        solved = true;
+        onDone();
+      } else {
+        cell.classList.add('wrong');
+        document.getElementById('grid-feedback').textContent = 'Nochmal versuchen...';
+        document.getElementById('grid-feedback').className = 'feedback bad';
+        setTimeout(()=>cell.classList.remove('wrong'), 400);
+      }
+    };
+  });
+}, 'Du findest jede Zelle!');
+
+const fpItems = [
+  { title:'Grundrechnung', parts:[
+      {txt:'=', cls:'eq', exp:'Gleichzeichen: startet jede Formel. Ohne "=" ist es nur Text.'},
+      {txt:'A1', cls:'ref', exp:'Zellbezug: der Wert aus Zelle A1 wird verwendet.'},
+      {txt:'+', cls:'op', exp:'Rechenzeichen: hier wird addiert.'},
+      {txt:'B1', cls:'ref', exp:'Zweiter Zellbezug: der Wert aus Zelle B1.'}
+  ]},
+  { title:'Funktion mit Bereich', parts:[
+      {txt:'=', cls:'eq', exp:'Auch Funktionen beginnen immer mit dem Gleichzeichen.'},
+      {txt:'SUMME', cls:'fn', exp:'Funktionsname: sagt Excel, was berechnet werden soll.'},
+      {txt:'(', cls:'paren', exp:'Öffnende Klammer: hier beginnt der Bereich.'},
+      {txt:'A1:A5', cls:'ref', exp:'Bereich: von Zelle A1 bis A5, der Doppelpunkt bedeutet "bis".'},
+      {txt:')', cls:'paren', exp:'Schliessende Klammer: hier endet der Bereich. Nie vergessen!'}
+  ]},
+  { title:'Klammern kombiniert', parts:[
+      {txt:'=', cls:'eq', exp:'Gleichzeichen, wie immer.'},
+      {txt:'(', cls:'paren', exp:'Öffnende Klammer: was darin steht, wird zuerst berechnet.'},
+      {txt:'A1+B1', cls:'ref', exp:'Diese Rechnung passiert zuerst, weil sie in Klammern steht.'},
+      {txt:')', cls:'paren', exp:'Schliessende Klammer: Ende der Klammer-Rechnung.'},
+      {txt:'/2', cls:'op', exp:'Erst danach wird durch 2 geteilt — das Ergebnis ist der Durchschnitt.'}
+  ]}
+];
+runQueue('fpGame', 'fpProgress', fpItems, (item, idx, total, container, onDone) => {
+  container.innerHTML = '<h3 style="font-size:16px; margin-bottom:6px; color:#888;">' + item.title + '</h3>' +
+    '<div id="fpParts" style="font-family:var(--mono); font-size:24px; display:flex; justify-content:center; gap:2px; flex-wrap:wrap; margin-bottom:10px;"></div>' +
+    '<div class="feedback" id="fpExplain" style="min-height:40px; color:var(--ink);"></div>' +
+    '<button class="btn-secondary" id="fpNext" style="display:none; margin-top:10px;">Weiter →</button>';
+  const partsEl = document.getElementById('fpParts');
+  const visited = new Set();
+  item.parts.forEach((p, pi) => {
+    const span = document.createElement('span');
+    span.className = 'fp-part ' + p.cls;
+    span.textContent = p.txt;
+    span.onclick = () => {
+      partsEl.querySelectorAll('.fp-part').forEach(s => s.classList.remove('active'));
+      span.classList.add('active');
+      span.classList.add('visited');
+      document.getElementById('fpExplain').textContent = p.exp;
+      visited.add(pi);
+      if(visited.size === item.parts.length){
+        document.getElementById('fpNext').style.display = 'inline-block';
+      }
+    };
+    partsEl.appendChild(span);
+  });
+  document.getElementById('fpNext').onclick = onDone;
+}, 'Formel-Bausteine gemeistert!');
+
+// ---------- STEP 5: Menüband (Ribbon) exploration ----------
+const ribbonData = [
+  { name:'Start', buttons:[
+      {ico:'𝐁', label:'Fett', exp:'Fett: macht markierten Text/Zahlen dicker — z.B. für Überschriften.'},
+      {ico:'🎨', label:'Füllfarbe', exp:'Füllfarbe: färbt den Hintergrund einer Zelle ein.'},
+      {ico:'🔗', label:'Verbinden', exp:'Zellen verbinden: macht aus mehreren Zellen eine grosse, z.B. für Titel.'},
+      {ico:'#', label:'Zahlenformat', exp:'Zahlenformat: legt fest, ob eine Zahl als Prozent, Datum oder Währung erscheint.'}
+  ]},
+  { name:'Einfügen', buttons:[
+      {ico:'📊', label:'Diagramm', exp:'Diagramm einfügen: verwandelt markierte Zahlen in Balken, Linien oder Kreisdiagramme.'},
+      {ico:'🖼️', label:'Bild', exp:'Bild einfügen: platziert ein Foto oder eine Grafik in der Tabelle.'},
+      {ico:'▦', label:'Tabelle', exp:'Tabelle: verwandelt einen Bereich in eine "echte" Tabelle mit Filterpfeilen.'},
+      {ico:'💬', label:'Kommentar', exp:'Kommentar: hängt eine Notiz an eine Zelle, sichtbar beim Draufzeigen.'}
+  ]},
+  { name:'Formeln', buttons:[
+      {ico:'ƒx', label:'Funktion einfügen', exp:'Funktion einfügen: öffnet eine Liste aller Funktionen mit Erklärung — praktisch, wenn du den Namen vergessen hast.'},
+      {ico:'Σ', label:'AutoSumme', exp:'AutoSumme: schlägt automatisch =SUMME() für die Zellen daneben vor.'},
+      {ico:'🔍', label:'Formel anzeigen', exp:'Formeln anzeigen: zeigt in allen Zellen die Formel statt des Ergebnisses — gut zum Kontrollieren.'},
+      {ico:'⚠', label:'Fehlerüberprüfung', exp:'Fehlerüberprüfung: findet Zellen mit #FEHLER und erklärt, was schiefging.'}
+  ]},
+  { name:'Daten', buttons:[
+      {ico:'🔀', label:'Sortieren', exp:'Sortieren: ordnet Zeilen nach einer Spalte, auf- oder absteigend.'},
+      {ico:'🔎', label:'Filter', exp:'Filter: blendet Zeilen aus, die eine Bedingung nicht erfüllen — z.B. nur Klasse 7a anzeigen.'},
+      {ico:'⑂', label:'Text in Spalten', exp:'Text in Spalten: teilt eine Spalte (z.B. "Vorname Nachname") in zwei separate Spalten auf.'},
+      {ico:'⌫', label:'Duplikate entfernen', exp:'Duplikate entfernen: löscht doppelt vorkommende Zeilen automatisch.'}
+  ]},
+  { name:'Ansicht', buttons:[
+      {ico:'📌', label:'Fenster fixieren', exp:'Fenster fixieren: hält z.B. die Kopfzeile beim Scrollen sichtbar.'},
+      {ico:'🔍', label:'Zoom', exp:'Zoom: vergrössert oder verkleinert die Ansicht der Tabelle.'},
+      {ico:'▦', label:'Gitternetzlinien', exp:'Gitternetzlinien: blendet die feinen Zelllinien ein oder aus.'}
+  ]}
+];
+const ribbonTabsEl = document.getElementById('ribbonTabs');
+const ribbonButtonsEl = document.getElementById('ribbonButtons');
+const ribbonExplainEl = document.getElementById('ribbon-explain');
+const ribbonProgressEl = document.getElementById('ribbonProgress');
+const visitedTabs = new Set();
+function updateRibbonProgress(){
+  if(visitedTabs.size >= ribbonData.length){
+    ribbonProgressEl.textContent = '🎉 Alle Bereiche erkundet!';
+  } else {
+    ribbonProgressEl.textContent = visitedTabs.size + ' von ' + ribbonData.length + ' Bereichen erkundet';
+  }
+}
+updateRibbonProgress();
+function renderRibbonTab(tabIdx){
+  ribbonTabsEl.querySelectorAll('.ribbon-tab').forEach((t,i) => t.classList.toggle('active', i===tabIdx));
+  const tab = ribbonData[tabIdx];
+  ribbonButtonsEl.innerHTML = '';
+  ribbonExplainEl.textContent = '';
+  tab.buttons.forEach(btn => {
+    const b = document.createElement('div');
+    b.className = 'ribbon-btn';
+    b.innerHTML = '<span class="ico">' + btn.ico + '</span>' + btn.label;
+    b.onclick = () => {
+      ribbonButtonsEl.querySelectorAll('.ribbon-btn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      ribbonExplainEl.textContent = btn.exp;
+      if(!visitedTabs.has(tabIdx)){
+        visitedTabs.add(tabIdx);
+        addScore(1);
+        updateRibbonProgress();
+      }
+    };
+    ribbonButtonsEl.appendChild(b);
+  });
+}
+ribbonData.forEach((tab, i) => {
+  const t = document.createElement('button');
+  t.className = 'ribbon-tab';
+  t.textContent = tab.name;
+  t.onclick = () => renderRibbonTab(i);
+  ribbonTabsEl.appendChild(t);
+});
+renderRibbonTab(0);
+
+const formulaItems = [
+  { label:'A1 = 4, B1 = 6', expr:'=A1+B1', ans:10 },
+  { label:'A1 = 4, B1 = 6', expr:'=A1*B1', ans:24 },
+  { label:'A1 = 4, B1 = 6', expr:'=B1-A1', ans:2 },
+  { label:'A1 = 4, B1 = 8', expr:'=B1/A1', ans:2 },
+  { label:'A1 = 4, B1 = 6', expr:'=(A1+B1)*2', ans:20 }
+];
+runQueue('formulaGame', 'formulaProgress', formulaItems, (item, idx, total, container, onDone) => {
+  container.innerHTML = '<p style="font-size:13px; color:#888; margin-bottom:6px;">' + item.label + '</p>' +
+    '<div class="fillbox"><span>' + item.expr + ' =</span><input type="text" id="fInput" maxlength="5"></div>' +
+    '<div class="feedback" id="formula-feedback"></div>';
+  const input = document.getElementById('fInput');
+  let solved = false;
+  input.addEventListener('input', () => {
+    if(solved) return;
+    const val = parseFloat(input.value.replace(',','.'));
+    if(Math.abs(val - item.ans) < 0.001){
+      input.classList.add('ok'); input.classList.remove('bad');
+      document.getElementById('formula-feedback').textContent = '✓ Stimmt!';
+      document.getElementById('formula-feedback').className = 'feedback ok';
+      solved = true;
+      onDone();
+    } else if(input.value !== ''){
+      input.classList.add('bad'); input.classList.remove('ok');
+    }
+  });
+}, 'Du kannst Formeln rechnen!');
+
+const fnList = [
+  {fn:'=SUMME(A1:A5)', desc:'Addiert alle Werte im Bereich'},
+  {fn:'=MITTELWERT(A1:A5)', desc:'Berechnet den Durchschnitt'},
+  {fn:'=MAX(A1:A5)', desc:'Findet den grössten Wert'},
+  {fn:'=MIN(A1:A5)', desc:'Findet den kleinsten Wert'},
+  {fn:'=ANZAHL(A1:A5)', desc:'Zählt die Zahlen im Bereich'},
+  {fn:'=PRODUKT(A1:A5)', desc:'Multipliziert alle Werte im Bereich'},
+  {fn:'=RUNDEN(A1;0)', desc:'Rundet eine Zahl auf ganze Zahlen'}
+];
+const shuffledDesc = fnList.map(f=>f.desc).sort(()=>Math.random()-0.5);
+let selectedFn = null;
+let selectedFnEl = null;
+let matchedCount = 0;
+const fnCol = document.getElementById('matchFn');
+const descCol = document.getElementById('matchDesc');
+fnList.forEach(f => {
+  const d = document.createElement('div');
+  d.className = 'match-item';
+  d.textContent = f.fn;
+  d.onclick = () => {
+    if(d.classList.contains('done')) return;
+    fnCol.querySelectorAll('.match-item').forEach(x=>x.classList.remove('sel'));
+    d.classList.add('sel');
+    selectedFn = f.fn;
+    selectedFnEl = d;
+  };
+  fnCol.appendChild(d);
+});
+shuffledDesc.forEach(desc => {
+  const d = document.createElement('div');
+  d.className = 'match-item desc';
+  d.textContent = desc;
+  d.onclick = () => {
+    if(d.classList.contains('done') || !selectedFn) return;
+    const correct = fnList.find(f=>f.fn===selectedFn).desc === desc;
+    if(correct){
+      d.classList.add('done');
+      selectedFnEl.classList.add('done');
+      matchedCount++;
+      addScore(1);
+      selectedFn = null;
+      selectedFnEl = null;
+      if(matchedCount === fnList.length){
+        document.getElementById('match-feedback').textContent = '🎉 Alle richtig zugeordnet!';
+        document.getElementById('match-feedback').className = 'feedback ok';
+      }
+    } else {
+      d.classList.add('wrong');
+      setTimeout(()=>d.classList.remove('wrong'), 400);
+    }
+  };
+  descCol.appendChild(d);
+});
+
+const COLS = ['A','B','C','D','E'];
+const ROWS = [1,2,3,4,5,6];
+const cellData = {};
+function parseRange(range){
+  const parts = range.split(':');
+  const start = parts[0], end = parts[1];
+  const sc = start.match(/[A-Z]+/)[0], sr = parseInt(start.match(/\d+/)[0]);
+  const ec = end.match(/[A-Z]+/)[0], er = parseInt(end.match(/\d+/)[0]);
+  const cols = COLS.slice(COLS.indexOf(sc), COLS.indexOf(ec)+1);
+  const refs = [];
+  for(let r = sr; r <= er; r++){ cols.forEach(c => refs.push(c+r)); }
+  return refs;
+}
+function getValue(ref, seen){
+  seen = seen || new Set();
+  if(seen.has(ref)) return NaN;
+  seen.add(ref);
+  const raw = cellData[ref];
+  if(raw === undefined || raw === '') return 0;
+  if(raw.indexOf('=') !== 0){ const n = parseFloat(raw.replace(',', '.')); return isNaN(n) ? raw : n; }
+  return evalFormula(raw.slice(1), seen);
+}
+function evalFormula(expr, seen){
+  expr = expr.trim().toUpperCase();
+  const fnMatch = expr.match(/^(SUMME|MITTELWERT|MAX|MIN|ANZAHL)\(([A-Z]+\d+:[A-Z]+\d+)\)$/);
+  if(fnMatch){
+    const fn = fnMatch[1];
+    const refs = parseRange(fnMatch[2]);
+    const vals = refs.map(r => getValue(r, new Set(seen))).filter(v => typeof v === 'number' && !isNaN(v));
+    if(fn === 'SUMME') return vals.reduce((a,b)=>a+b,0);
+    if(fn === 'MITTELWERT') return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+    if(fn === 'MAX') return vals.length ? Math.max.apply(null, vals) : 0;
+    if(fn === 'MIN') return vals.length ? Math.min.apply(null, vals) : 0;
+    if(fn === 'ANZAHL') return vals.length;
+  }
+  let safe = expr.replace(/[A-Z]+\d+/g, (ref) => { const v = getValue(ref, new Set(seen)); return typeof v === 'number' ? v : 0; });
+  if(!/^[0-9+\-*/().\s]+$/.test(safe)) return '#FEHLER';
+  try{ return Function('"use strict"; return (' + safe + ')')(); } catch(e){ return '#FEHLER'; }
+}
+function renderSheet(){
+  const table = document.getElementById('sheet');
+  let html = '<tr><th></th>' + COLS.map(c => '<th>'+c+'</th>').join('') + '</tr>';
+  ROWS.forEach(r => {
+    html += '<tr><td class="rowhead">' + r + '</td>';
+    COLS.forEach(c => { const ref = c + r; const raw = cellData[ref] || ''; html += '<td class="cell" data-ref="' + ref + '"><input value="' + raw + '"></td>'; });
+    html += '</tr>';
+  });
+  table.innerHTML = html;
+  table.querySelectorAll('input').forEach(input => {
+    const ref = input.parentElement.dataset.ref;
+    input.addEventListener('focus', () => { input.value = cellData[ref] || ''; });
+    input.addEventListener('blur', () => commitCell(ref, input));
+    input.addEventListener('keydown', (e) => { if(e.key === 'Enter') input.blur(); });
+    displayCell(ref, input);
+  });
+}
+function displayCell(ref, input){
+  if(document.activeElement === input) return;
+  const val = getValue(ref);
+  input.parentElement.classList.toggle('err', val === '#FEHLER');
+  input.value = (typeof val === 'number') ? (Math.round(val*100)/100) : val;
+}
+function commitCell(ref, input){ cellData[ref] = input.value.trim(); refreshAll(); checkTasks(); }
+function refreshAll(){ document.querySelectorAll('#sheet input').forEach(input => { const ref = input.parentElement.dataset.ref; displayCell(ref, input); }); }
+cellData['A1']='12'; cellData['A2']='7'; cellData['A3']='19'; cellData['A4']='4'; cellData['A5']='15';
+renderSheet();
+
+const taskDefs = [
+  { text: 'B1 = Summe von A1:A5 (=SUMME(A1:A5))', check: () => getValue('B1') === (12+7+19+4+15) },
+  { text: 'B2 = Mittelwert von A1:A5 (=MITTELWERT(A1:A5))', check: () => Math.abs(getValue('B2') - (12+7+19+4+15)/5) < 0.01 },
+  { text: 'B3 = Max von A1:A5 (=MAX(A1:A5))', check: () => getValue('B3') === 19 },
+  { text: 'B4 = A1 + A2', check: () => getValue('B4') === 19 },
+  { text: 'B5 = Anzahl der Werte in A1:A5 (=ANZAHL(A1:A5))', check: () => getValue('B5') === 5 },
+  { text: 'C1 = Min von A1:A5 (=MIN(A1:A5))', check: () => getValue('C1') === 4 }
+];
+let taskIdx = 0;
+function renderTasks(){
+  const el = document.getElementById('tasks');
+  let html = '';
+  for(let i=0; i<=taskIdx && i<taskDefs.length; i++){
+    const isCurrent = i === taskIdx;
+    const isDone = i < taskIdx;
+    html += '<div class="task ' + (isDone?'done':'') + ' ' + (isCurrent?'current':'') + '" id="task-' + i + '"><div class="check">✓</div><span class="txt">' + taskDefs[i].text + '</span></div>';
+  }
+  if(taskIdx >= taskDefs.length){
+    html = '<div class="done-banner">🎉 Alle Aufgaben im Übungsblatt gelöst!</div>';
+  }
+  el.innerHTML = html;
+}
+function checkTasks(){
+  if(taskIdx >= taskDefs.length) return;
+  if(taskDefs[taskIdx].check()){
+    const el = document.getElementById('task-'+taskIdx);
+    if(el) el.classList.add('done');
+    addScore(1);
+    taskIdx++;
+    setTimeout(renderTasks, 500);
+  }
+}
+renderTasks();
+
+const fillItems = [
+  { originLabel:'=A1*2', direction:'down', labels:['=A2*2','=A3*2','=A4*2'], ask:'Formel in Zelle 4 (nach unten gezogen)?', answer:'=A4*2' },
+  { originLabel:'=B1+3', direction:'down', labels:['=B2+3','=B3+3','=B4+3'], ask:'Formel in Zelle 4 (nach unten gezogen)?', answer:'=B4+3' },
+  { originLabel:'=A1*2', direction:'right', labels:['=B1*2','=C1*2','=D1*2'], ask:'Formel in der 4. Zelle (nach rechts gezogen)?', answer:'=D1*2' }
+];
+runQueue('fillGame', 'fillProgress', fillItems, (item, idx, total, container, onDone) => {
+  container.innerHTML = '<p class="lead" style="margin-bottom:6px;">Zieh die Formel ' + (item.direction==='down'?'nach unten':'nach rechts') + ' — was passiert mit dem Bezug?</p>' +
+    '<div class="fillrow" id="fillrow">' +
+      '<div class="fillcell origin">' + item.originLabel + '</div>' +
+      '<div class="fillcell">?</div><div class="fillcell">?</div><div class="fillcell">?</div>' +
+    '</div>' +
+    '<input type="text" id="fillGuess" placeholder="' + item.ask + '" style="padding:8px; font-family:var(--mono); border:2px solid var(--line); border-radius:8px; text-align:center; width:220px;">' +
+    '<div class="feedback" id="fill-feedback"></div>' +
+    '<button class="btn-secondary" id="fillShow">▶ Anzeigen</button>';
+  document.getElementById('fillShow').onclick = () => {
+    const cells = document.querySelectorAll('#fillrow .fillcell:not(.origin)');
+    cells.forEach((c,i) => { c.classList.remove('filled'); setTimeout(()=>{ c.textContent = item.labels[i]; c.classList.add('filled'); }, i*300+200); });
+  };
+  let solved = false;
+  document.getElementById('fillGuess').addEventListener('input', (e) => {
+    if(solved) return;
+    const v = e.target.value.replace(/\s/g,'').toUpperCase();
+    const fb = document.getElementById('fill-feedback');
+    if(v === item.answer.toUpperCase()){
+      fb.textContent = '✓ Genau!'; fb.className='feedback ok';
+      solved = true;
+      onDone();
+    } else if(v.length > 0){
+      fb.textContent = 'Tipp: der Bezug verschiebt sich mit'; fb.className='feedback bad';
+    }
+  });
+}, 'Autofill verstanden!');
+
+const baseData = [ {name:'Lena',punkte:18,klasse:'7a'}, {name:'Tim',punkte:24,klasse:'7b'}, {name:'Aylin',punkte:15,klasse:'7a'}, {name:'Noah',punkte:21,klasse:'7c'}, {name:'Mia',punkte:9,klasse:'7b'} ];
+let sortData = baseData.slice();
+let sortDir = {};
+function renderSortDemo(){ document.querySelector('#sortdemo tbody').innerHTML = sortData.map(r => '<tr><td>'+r.name+'</td><td>'+r.punkte+'</td><td>'+r.klasse+'</td></tr>').join(''); }
+renderSortDemo();
+
+const sortChallenges = [
+  { text:'Sortiere nach Punkten aufsteigend (klein → gross)', check: () => sortData.every((r,i,arr)=> i===0 || arr[i-1].punkte <= r.punkte) },
+  { text:'Sortiere nach Namen alphabetisch (A → Z)', check: () => sortData.every((r,i,arr)=> i===0 || arr[i-1].name.localeCompare(r.name) <= 0) },
+  { text:'Sortiere nach Punkten absteigend (gross → klein)', check: () => sortData.every((r,i,arr)=> i===0 || arr[i-1].punkte >= r.punkte) }
+];
+let sortIdx = 0;
+function updateSortInstruction(){
+  const el = document.getElementById('sortInstruction');
+  const prog = document.getElementById('sortProgress');
+  if(sortIdx >= sortChallenges.length){
+    el.textContent = '🎉 Alle Sortier-Aufgaben gelöst!';
+    prog.textContent = '';
+    return;
+  }
+  prog.textContent = 'Aufgabe ' + (sortIdx+1) + ' von ' + sortChallenges.length;
+  el.textContent = sortChallenges[sortIdx].text;
+}
+updateSortInstruction();
+document.querySelectorAll('#sortdemo th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    sortDir[col] = !sortDir[col];
+    sortData = sortData.slice().sort((a,b) => {
+      if(typeof a[col] === 'number') return sortDir[col] ? a[col]-b[col] : b[col]-a[col];
+      return sortDir[col] ? String(a[col]).localeCompare(b[col]) : String(b[col]).localeCompare(a[col]);
+    });
+    renderSortDemo();
+    if(sortIdx < sortChallenges.length && sortChallenges[sortIdx].check()){
+      const fb = document.getElementById('sort-feedback');
+      fb.textContent = '✓ Richtig!'; fb.className = 'feedback ok';
+      addScore(1);
+      sortIdx++;
+      setTimeout(() => { document.getElementById('sort-feedback').textContent=''; updateSortInstruction(); }, 700);
+    }
+  });
+});
+
+const chartScenarios = [
+  { question:'Du willst die Punktzahlen von 5 sus vergleichen.', opts:[{ico:'📊',label:'Balken',correct:true},{ico:'📈',label:'Linie',correct:false},{ico:'🥧',label:'Kreis',correct:false}] },
+  { question:'Du willst zeigen, wie sich die Klassengrösse über 5 Jahre entwickelt hat.', opts:[{ico:'📈',label:'Linie',correct:true},{ico:'📊',label:'Balken',correct:false},{ico:'🥧',label:'Kreis',correct:false}] },
+  { question:'Du willst zeigen, wie sich eine Klasse prozentual auf 4 Wahlfächer verteilt.', opts:[{ico:'🥧',label:'Kreis',correct:true},{ico:'📈',label:'Linie',correct:false},{ico:'📊',label:'Balken',correct:false}] }
+];
+runQueue('chartGame', 'chartProgress', chartScenarios, (item, idx, total, container, onDone) => {
+  container.innerHTML = '<p class="lead" style="margin-bottom:4px;">' + item.question + '</p><div class="chart-choice" id="chartChoice"></div>';
+  const chartEl = document.getElementById('chartChoice');
+  const shuffled = item.opts.slice().sort(()=>Math.random()-0.5);
+  let done = false;
+  shuffled.forEach(o => {
+    const d = document.createElement('div');
+    d.className = 'chart-opt';
+    d.innerHTML = '<span class="ico">' + o.ico + '</span>' + o.label;
+    d.onclick = () => {
+      if(done) return;
+      if(o.correct){ d.classList.add('correct'); done = true; onDone(); }
+      else{ d.classList.add('wrong'); setTimeout(()=>d.classList.remove('wrong'), 400); }
+    };
+    chartEl.appendChild(d);
+  });
+}, 'Du wählst immer den richtigen Diagrammtyp!');
+</script>
+</body>
+</html>
