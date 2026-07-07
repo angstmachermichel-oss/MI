@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drucken mit Uniflow · OSZ Mett-Bözingen</title>
+<style>
+  :root{
+    --ink:#1a1d1a; --paper:#f7f5f0; --panel:#ffffff; --line:#dedad0;
+    --accent:#c65d2e; --accent-soft:#f0dccb; --ok:#3f7a5c; --ok-soft:#dcece2;
+    --mono:"IBM Plex Mono","Courier New",monospace;
+    --sans:"Fredoka","Segoe UI",system-ui,sans-serif;
+    --body:"Karla","Segoe UI",system-ui,sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Karla:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap');
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); line-height:1.6;}
+  h1,h2,h3{font-family:var(--sans); margin:0; letter-spacing:-0.01em;}
+
+  /* progress bar */
+  #progress{position:fixed; top:0; left:0; height:4px; background:var(--accent); width:0%; z-index:100; transition:width .1s;}
+
+  /* hero */
+  .hero{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:40px 20px;
+    background: radial-gradient(circle at 20% 20%, rgba(198,93,46,0.12), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(63,122,92,0.10), transparent 50%), var(--paper);
+  }
+  .hero .mark{font-family:var(--mono); font-size:12px; letter-spacing:0.14em; color:var(--accent); text-transform:uppercase; margin-bottom:10px;}
+  .hero h1{font-size:48px; margin-bottom:14px;}
+  .hero p{font-size:18px; color:#555; max-width:480px; margin:0 auto 30px;}
+  .scroll-hint{font-family:var(--mono); font-size:12px; color:var(--muted,#888); animation:bounce 2s infinite;}
+  @keyframes bounce{0%,100%{transform:translateY(0);} 50%{transform:translateY(8px);}}
+
+  .printer-icon{width:120px; height:100px; margin-bottom:24px;}
+
+  /* sections */
+  section.step{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:60px 20px;
+  }
+  .step-inner{
+    max-width:640px; width:100%; opacity:0; transform:translateY(30px); transition:opacity .6s ease, transform .6s ease;
+  }
+  .step-inner.visible{opacity:1; transform:translateY(0);}
+  .step-num{
+    font-family:var(--mono); font-size:13px; color:var(--accent); text-transform:uppercase; letter-spacing:0.1em;
+    display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .step-num .dot{width:28px; height:28px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-family:var(--sans);}
+  .step h2{font-size:30px; margin-bottom:16px;}
+  .step p{font-size:16px; color:#444; margin-bottom:12px;}
+  .step .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; margin-top:18px;}
+  .step .card .label{font-family:var(--mono); font-size:11px; text-transform:uppercase; color:var(--accent); letter-spacing:0.06em; margin-bottom:8px; display:block;}
+
+  /* progress dots on side */
+  #sidedots{position:fixed; right:18px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:10px; z-index:90;}
+  #sidedots .d{width:9px; height:9px; border-radius:50%; background:var(--line); transition:background .3s, transform .3s;}
+  #sidedots .d.active{background:var(--accent); transform:scale(1.4);}
+  @media (max-width:700px){#sidedots{display:none;}}
+
+  /* diagram workflow */
+  .workflow{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:20px 0;}
+  .workflow .wf-item{
+    background:var(--panel); border:2px solid var(--line); border-radius:10px; padding:12px 16px;
+    font-size:13px; font-weight:600; text-align:center; min-width:100px; transition:border-color .3s, background .3s;
+  }
+  .workflow .wf-item.active{border-color:var(--accent); background:var(--accent-soft);}
+  .workflow .arrow{align-self:center; color:var(--line); font-size:20px;}
+
+  /* accordion (troubleshooting) */
+  .acc-item{border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden; background:var(--panel);}
+  .acc-head{padding:14px 18px; font-weight:700; cursor:pointer; display:flex; justify-content:space-between; align-items:center; font-size:15px;}
+  .acc-body{max-height:0; overflow:hidden; transition:max-height .3s ease; padding:0 18px; font-size:14px; color:#444;}
+  .acc-item.open .acc-body{max-height:200px; padding-bottom:16px;}
+  .acc-item.open .acc-head .chevron{transform:rotate(180deg);}
+  .chevron{transition:transform .3s; color:var(--accent);}
+
+  /* quiz */
+  .quiz-q{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px;}
+  .quiz-q p.question{font-weight:700; margin-bottom:12px; font-size:15px;}
+  .quiz-opt{
+    display:block; width:100%; text-align:left; padding:10px 14px; margin-bottom:8px; border:1px solid var(--line);
+    border-radius:8px; background:var(--paper); font-size:14px; cursor:pointer; font-family:var(--body);
+  }
+  .quiz-opt.correct{border-color:var(--ok); background:var(--ok-soft);}
+  .quiz-opt.wrong{border-color:#b33; background:#f6dede;}
+  .quiz-opt[disabled]{cursor:default;}
+  #quizResult{text-align:center; font-family:var(--sans); font-size:20px; margin-top:20px; display:none;}
+
+  .final{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 20px;
+  }
+  .btn-primary{
+    background:var(--ink); color:var(--paper); border:none; padding:13px 26px; border-radius:8px;
+    font-size:16px; font-weight:600; font-family:var(--sans); cursor:pointer; margin-top:20px;
+  }
+  .btn-primary:hover{background:#000;}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="sidedots"></div>
+
+<section class="hero">
+  <svg class="printer-icon" viewBox="0 0 120 100" fill="none">
+    <rect x="15" y="35" width="90" height="40" rx="6" fill="#1a1d1a"/>
+    <rect x="30" y="10" width="60" height="30" rx="3" fill="#f7f5f0" stroke="#1a1d1a" stroke-width="3"/>
+    <rect x="30" y="65" width="60" height="30" rx="3" fill="#f7f5f0" stroke="#1a1d1a" stroke-width="3"/>
+    <circle cx="95" cy="50" r="4" fill="#c65d2e"/>
+  </svg>
+  <div class="mark">OSZ Mett-Bözingen · MI</div>
+  <h1>Drucken mit Uniflow</h1>
+  <p>So schickst du Dateien zum Schuldrucker, holst sie ab und behältst den Überblick — in vier einfachen Schritten.</p>
+  <div class="scroll-hint">↓ Scrollen, um loszulegen</div>
+</section>
+
+<section class="step" data-step="1">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">1</span> Auftrag senden</div>
+    <h2>Datei zum Drucker schicken</h2>
+    <p>Öffne dein Dokument (Word, Excel, PDF…) und wähle wie gewohnt <strong>Datei → Drucken</strong>. Wähle als Drucker <strong>"uniFLOW"</strong> aus der Liste — nicht einen bestimmten Raumdrucker.</p>
+    <div class="card">
+      <span class="label">Wichtig</span>
+      Dein Auftrag wird jetzt nicht sofort gedruckt. Er landet sicher in deiner <strong>persönlichen Warteschlange</strong> und wartet dort, bis du ihn an einem beliebigen Drucker im Schulhaus abholst.
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="2">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">2</span> Kontrolle & PIN</div>
+    <h2>Auf uniflowonline.com nachsehen</h2>
+    <p>Öffne im Browser <strong>bielbienne.eu.uniflowonline.com</strong> und melde dich mit deinem Schulkonto an (<span style="font-family:var(--mono);">@educ-biel-bienne.ch</span>). Dort siehst du im Dashboard, ob dein Auftrag wirklich angekommen ist ("Meine Warteschlange").</p>
+    <div class="card">
+      <span class="label">Deinen PIN finden</span>
+      Unter <strong>Profileinstellungen → Identitäten</strong> findest du deinen persönlichen <strong>6-stelligen PIN</strong> — den brauchst du gleich am Drucker. Tippe auf die drei Punkte neben "PIN" → "PIN-Code anzeigen".
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="3">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">3</span> Am Drucker anmelden</div>
+    <h2>PIN eingeben</h2>
+    <p>Geh zu einem beliebigen uniFLOW-Drucker im Schulhaus. Tippe am Bildschirm auf <strong>"PIN-Code"</strong> und gib deinen 6-stelligen PIN über die Tastatur ein. Kein Ausweis nötig — der PIN genügt.</p>
+    <div class="workflow" id="wf1">
+      <div class="wf-item" data-idx="0">PIN-Code wählen</div>
+      <div class="arrow">→</div>
+      <div class="wf-item" data-idx="1">6-stelligen PIN eingeben</div>
+      <div class="arrow">→</div>
+      <div class="wf-item" data-idx="2">Login</div>
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="4">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">4</span> Freigeben & abholen</div>
+    <h2>Auftrag auswählen und drucken</h2>
+    <p>In der <strong>Secure Queue</strong> siehst du jetzt alle deine wartenden Dokumente. Tippe dein Dokument an und wähle <strong>"Alle Drucken"</strong> (oder "Drucken + Löschen", wenn du es danach nicht mehr brauchst). Vergiss nicht, dich am Ende wieder abzumelden.</p>
+    <div class="card">
+      <span class="label">Kein Limit</span>
+      An der OSZ Mett-Bözingen gibt es aktuell kein Seitenkontingent — du kannst so viel drucken, wie du für den Unterricht brauchst. Geh trotzdem sorgsam mit Papier um.
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="5">
+  <div class="step-inner">
+    <div class="step-num"><span class="dot">☓</span> Häufige Probleme</div>
+    <h2>Wenn's mal nicht klappt</h2>
+    <div class="acc" id="accordion">
+      <div class="acc-item">
+        <div class="acc-head">Mein Auftrag erscheint nicht in der Warteschlange <span class="chevron">⌄</span></div>
+        <div class="acc-body">Prüfe auf bielbienne.eu.uniflowonline.com, ob das Dokument wirklich angekommen ist. Hast du beim Drucken wirklich "uniFLOW" als Drucker gewählt, nicht einen bestimmten Raumdrucker?</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head">Ich kenne meinen PIN nicht mehr <span class="chevron">⌄</span></div>
+        <div class="acc-body">Melde dich auf bielbienne.eu.uniflowonline.com mit deinem Schulkonto an → Profileinstellungen → Identitäten → bei "PIN" auf die drei Punkte tippen → "PIN-Code anzeigen".</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head">Der PIN am Drucker wird nicht akzeptiert <span class="chevron">⌄</span></div>
+        <div class="acc-body">Prüfe, ob du wirklich alle 6 Ziffern korrekt eingegeben hast. Bei wiederholten Problemen wende dich an die Klassenlehrperson oder den Informatik-Support.</div>
+      </div>
+      <div class="acc-item">
+        <div class="acc-head">Der Ausdruck ist leer oder falsch formatiert <span class="chevron">⌄</span></div>
+        <div class="acc-body">Prüfe die Druckvorschau vor dem Senden. Bei PDFs: teste, ob das Dokument auch auf deinem Bildschirm korrekt angezeigt wird.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="step" data-step="6">
+  <div class="step-inner" style="max-width:600px;">
+    <div class="step-num"><span class="dot">✓</span> Verstanden?</div>
+    <h2>Kurzer Check</h2>
+    <div id="quiz"></div>
+    <div id="quizResult"></div>
+  </div>
+</section>
+
+<section class="final">
+  <h2 style="font-size:28px; margin-bottom:10px;">Gut gemacht!</h2>
+  <p style="color:#555; max-width:420px;">Du weisst jetzt, wie du an der OSZ Mett-Bözingen Dokumente druckst. Kehre zur Werkstatt zurück, um diese Lernumgebung als erledigt zu markieren.</p>
+  <button class="btn-primary" onclick="window.close(); history.back();">← Zurück zur Werkstatt</button>
+</section>
+
+<script>
+// ---------- Scroll progress ----------
+window.addEventListener('scroll', () => {
+  const h = document.documentElement;
+  const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+  document.getElementById('progress').style.width = scrolled + '%';
+});
+
+// ---------- Side dots ----------
+const steps = document.querySelectorAll('section.step, section.final');
+const dotsContainer = document.getElementById('sidedots');
+steps.forEach((s, i) => {
+  const d = document.createElement('div');
+  d.className = 'd';
+  dotsContainer.appendChild(d);
+});
+const allDots = dotsContainer.querySelectorAll('.d');
+
+// ---------- Reveal on scroll ----------
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const inner = entry.target.querySelector('.step-inner');
+    if(entry.isIntersecting){
+      if(inner) inner.classList.add('visible');
+      const idx = Array.from(steps).indexOf(entry.target);
+      allDots.forEach((d,i) => d.classList.toggle('active', i === idx));
+    }
+  });
+}, { threshold: 0.4 });
+steps.forEach(s => observer.observe(s));
+
+// ---------- Workflow diagram animation ----------
+function animateWorkflow(containerId){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  const items = el.querySelectorAll('.wf-item');
+  let i = 0;
+  setInterval(() => {
+    items.forEach((it, idx) => it.classList.toggle('active', idx === i));
+    i = (i + 1) % items.length;
+  }, 1200);
+}
+animateWorkflow('wf1');
+animateWorkflow('wf2');
+
+// ---------- Accordion ----------
+document.querySelectorAll('.acc-item .acc-head').forEach(head => {
+  head.addEventListener('click', () => {
+    head.parentElement.classList.toggle('open');
+  });
+});
+
+// ---------- Quiz ----------
+const quizData = [
+  {
+    q: "Welchen Drucker wählst du beim Drucken aus Word, Excel oder PDF aus?",
+    options: ["Einen bestimmten Raumdrucker", "\"uniFLOW\"", "Den Standarddrucker von Windows"],
+    correct: 1
+  },
+  {
+    q: "Wo findest du deinen 6-stelligen PIN?",
+    options: ["Auf bielbienne.eu.uniflowonline.com unter Profileinstellungen", "Er steht auf dem Drucker", "Er wird per SMS geschickt"],
+    correct: 0
+  },
+  {
+    q: "Wie meldest du dich am Drucker im Schulhaus an, um zu drucken?",
+    options: ["Ausweis scannen", "6-stelligen PIN eingeben", "Mit E-Mail-Adresse einloggen"],
+    correct: 1
+  },
+  {
+    q: "Wie viele Seiten darfst du an der OSZ Mett-Bözingen drucken?",
+    options: ["Maximal 50 pro Monat", "Es gibt kein Limit", "Nur 10 pro Woche"],
+    correct: 1
+  }
+];
+let score = 0;
+let answered = 0;
+const quizEl = document.getElementById('quiz');
+quizData.forEach((item, qi) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'quiz-q';
+  const p = document.createElement('p');
+  p.className = 'question';
+  p.textContent = (qi+1) + ". " + item.q;
+  wrap.appendChild(p);
+  item.options.forEach((opt, oi) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      const buttons = wrap.querySelectorAll('.quiz-opt');
+      buttons.forEach(b => b.disabled = true);
+      if(oi === item.correct){
+        btn.classList.add('correct');
+        score++;
+      } else {
+        btn.classList.add('wrong');
+        buttons[item.correct].classList.add('correct');
+      }
+      answered++;
+      if(answered === quizData.length){
+        const resEl = document.getElementById('quizResult');
+        resEl.style.display = 'block';
+        resEl.textContent = score === quizData.length
+          ? '🎉 Alles richtig! Du bist bereit zum Drucken.'
+          : `Du hast ${score} von ${quizData.length} richtig. Schau dir die Schritte oben nochmal an.`;
+      }
+    };
+    wrap.appendChild(btn);
+  });
+  quizEl.appendChild(wrap);
+});
+</script>
+</body>
+</html>
